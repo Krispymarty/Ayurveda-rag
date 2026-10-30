@@ -1,0 +1,17 @@
+.git
+.env*
+!.env.example
+.venv
+__pycache__
+*.pyc
+corpus
+data
+reports
+tests/.tmp
+tests/tmp*
+.ruff_cache
+.pytest_cache
+*.pdf
+*.docx
+*.zip
+*.jsonl

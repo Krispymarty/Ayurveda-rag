@@ -1,0 +1,550 @@
+{
+  "schema_version": 2,
+  "frozen": false,
+  "partial_labels_frozen": true,
+  "annotation_method": "Passages selected from archived source text independently of retrieval results; missing sources remain unreviewed.",
+  "queries": [
+    {
+      "id": "ipindia-01",
+      "source": "ipindia",
+      "query": "Patents Act section 3 traditional knowledge invention exclusion",
+      "reviewed": true,
+      "review_note": "Archived passage and provision/page checked; legal status remains unknown.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-act-1970/section-3"
+          ],
+          "section": "3",
+          "contains": "traditional knowledge",
+          "raw_sha256": [
+            "994e82009cf40f4384254c525f85f11e96ca8bb1aa6ec2ee943c5fb02fd590b6"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ipindia-02",
+      "source": "ipindia",
+      "query": "Patents Act section 25 pre grant opposition",
+      "reviewed": true,
+      "review_note": "Archived passage and provision/page checked; legal status remains unknown.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-act-1970/section-25"
+          ],
+          "section": "25",
+          "contains": "any person",
+          "raw_sha256": [
+            "d2bad06c7512f3135075625ad570b95a5d418b1e58220ea51c8ed2644908d07a"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ipindia-03",
+      "source": "ipindia",
+      "query": "Patents Act section 10 complete specification",
+      "reviewed": true,
+      "review_note": "Archived passage and provision/page checked; legal status remains unknown.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-act-1970/section-10"
+          ],
+          "section": "10",
+          "contains": "Every specification",
+          "raw_sha256": [
+            "01bcccd2457754ddf3aae893a39b3c0d83a4bc34ed495183a21875c7795fc789"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ipindia-04",
+      "source": "ipindia",
+      "query": "Patents Act section 6 persons entitled to apply",
+      "reviewed": true,
+      "review_note": "Archived passage and provision/page checked; legal status remains unknown.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-act-1970/section-6"
+          ],
+          "section": "6",
+          "contains": "Subject to",
+          "raw_sha256": [
+            "434bdd6924cf76a3ff74c5e5d82e9263edb0fd9d71011e6669bedfa89ae81449"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ipindia-05",
+      "source": "ipindia",
+      "query": "Patents Act section 2 invention definition",
+      "reviewed": true,
+      "review_note": "Archived passage and provision/page checked; legal status remains unknown.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-act-1970/section-2-5"
+          ],
+          "section": "2",
+          "contains": "new product or process",
+          "raw_sha256": [
+            "98387be6aa22ac9aa7b5b655bb9bd9e17d69e032a0360ef196ad5cfdf5927336"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ipindia-06",
+      "source": "ipindia",
+      "query": "Patent Rules 2003 rule 15",
+      "reviewed": true,
+      "review_note": "Archived passage and provision/page checked; legal status remains unknown.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-rules-2003/rule-15"
+          ],
+          "rule": "15",
+          "contains": "Drawings",
+          "raw_sha256": [
+            "5fbaa2398db0340120f228412c8e6cf9d9d0535c1bf0b7a101c6cd5636a023bf"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ipindia-07",
+      "source": "ipindia",
+      "query": "Patent Rules 2003 rule 103A",
+      "reviewed": true,
+      "review_note": "Archived passage and provision/page checked; legal status remains unknown.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-rules-2003/rule-103a"
+          ],
+          "rule": "103A",
+          "contains": "scientific advisers",
+          "raw_sha256": [
+            "9e514d122c95db3da099dc91936bc00e33846829c07082cb57fc81717d196cc8"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ipindia-08",
+      "source": "ipindia",
+      "query": "Trade Marks Act 1999 registration",
+      "reviewed": true,
+      "review_note": "Archived passage and provision/page checked; legal status remains unknown.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/frontend/pdf/trade-mark/act/1_43_1_trade-marks-act.pdf"
+          ],
+          "page": 11,
+          "contains": "Any person claiming",
+          "raw_sha256": [
+            "07aa58f3262a4d764c087577b2d49c7de0f4f49a392818aa9bc38c0dba620f1f"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ipindia-09",
+      "source": "ipindia",
+      "query": "Trade Marks Rules 2017 application",
+      "reviewed": true,
+      "review_note": "Archived passage and provision/page checked; legal status remains unknown.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/frontend/pdf/trade-mark/act/1_69_1_Trade_Marks_Rules_2017.pdf"
+          ],
+          "rule": "23",
+          "page": 59,
+          "contains": "TM-A",
+          "raw_sha256": [
+            "b858aa6874a4373be03b1ee3a7a926f9f7b79dc7a15dbffdc2109cf6c3a33e92"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ipindia-10",
+      "source": "ipindia",
+      "query": "Designs Act 2000 registration",
+      "reviewed": true,
+      "review_note": "Archived passage and provision/page checked; legal status remains unknown.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/frontend/pdf/design/1_58_1_design_act_1_.pdf"
+          ],
+          "page": 2,
+          "contains": "prescribed fee",
+          "raw_sha256": [
+            "e392e657bba992c763a4442d5cfe2d3ca089682590ae5bfa35a35c0381adc79f"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "indiacode-01",
+      "source": "indiacode",
+      "query": "India Code Patents Act 1970 inventions not patentable",
+      "reviewed": false,
+      "review_note": "Pending fresh official-source passage verification.",
+      "targets": [
+        {
+          "source": "indiacode",
+          "urls": [
+            "https://www.indiacode.nic.in/bitstream/123456789/1392/1/A1970-39.pdf"
+          ],
+          "contains": "SOURCE PASSAGE REVIEW REQUIRED",
+          "raw_sha256": []
+        }
+      ]
+    },
+    {
+      "id": "indiacode-02",
+      "source": "indiacode",
+      "query": "India Code Patents Act biological material source disclosure",
+      "reviewed": false,
+      "review_note": "Pending fresh official-source passage verification.",
+      "targets": [
+        {
+          "source": "indiacode",
+          "urls": [
+            "https://www.indiacode.nic.in/bitstream/123456789/1392/1/A1970-39.pdf"
+          ],
+          "contains": "SOURCE PASSAGE REVIEW REQUIRED",
+          "raw_sha256": []
+        }
+      ]
+    },
+    {
+      "id": "indiacode-03",
+      "source": "indiacode",
+      "query": "India Code Patents Act prior knowledge anticipation",
+      "reviewed": false,
+      "review_note": "Pending fresh official-source passage verification.",
+      "targets": [
+        {
+          "source": "indiacode",
+          "urls": [
+            "https://www.indiacode.nic.in/bitstream/123456789/1392/1/A1970-39.pdf"
+          ],
+          "contains": "SOURCE PASSAGE REVIEW REQUIRED",
+          "raw_sha256": []
+        }
+      ]
+    },
+    {
+      "id": "indiacode-04",
+      "source": "indiacode",
+      "query": "India Code Biological Diversity Act access biological resources",
+      "reviewed": false,
+      "review_note": "Pending fresh official-source passage verification.",
+      "targets": [
+        {
+          "source": "indiacode",
+          "urls": [
+            "https://www.indiacode.nic.in/bitstream/123456789/2046/4/a2003-18.pdf"
+          ],
+          "contains": "SOURCE PASSAGE REVIEW REQUIRED",
+          "raw_sha256": []
+        }
+      ]
+    },
+    {
+      "id": "indiacode-05",
+      "source": "indiacode",
+      "query": "India Code Biological Diversity Act fair equitable benefit sharing",
+      "reviewed": false,
+      "review_note": "Pending fresh official-source passage verification.",
+      "targets": [
+        {
+          "source": "indiacode",
+          "urls": [
+            "https://www.indiacode.nic.in/bitstream/123456789/2046/4/a2003-18.pdf"
+          ],
+          "contains": "SOURCE PASSAGE REVIEW REQUIRED",
+          "raw_sha256": []
+        }
+      ]
+    },
+    {
+      "id": "indiacode-06",
+      "source": "indiacode",
+      "query": "India Code Biological Diversity Rules 2024 benefit sharing",
+      "reviewed": false,
+      "review_note": "Pending fresh official-source passage verification.",
+      "targets": [
+        {
+          "source": "indiacode",
+          "urls": [
+            "https://upload.indiacode.nic.in/showfile?actid=AC_CEN_16_18_000010_200318_1517807327125&filename=bd_rules_2024_%281%29.pdf&type=rule"
+          ],
+          "contains": "SOURCE PASSAGE REVIEW REQUIRED",
+          "raw_sha256": []
+        }
+      ]
+    },
+    {
+      "id": "indiacode-07",
+      "source": "indiacode",
+      "query": "India Code geographical indications goods registration protection act",
+      "reviewed": false,
+      "review_note": "Pending fresh official-source passage verification.",
+      "targets": [
+        {
+          "source": "indiacode",
+          "urls": [
+            "https://www.indiacode.nic.in/bitstream/123456789/1981/1/a199948.pdf"
+          ],
+          "contains": "SOURCE PASSAGE REVIEW REQUIRED",
+          "raw_sha256": []
+        }
+      ]
+    },
+    {
+      "id": "indiacode-08",
+      "source": "indiacode",
+      "query": "India Code geographical indications goods rules 2002 authorized user",
+      "reviewed": false,
+      "review_note": "Pending fresh official-source passage verification.",
+      "targets": [
+        {
+          "source": "indiacode",
+          "urls": [
+            "https://upload.indiacode.nic.in/showfile?actid=AC_CEN_11_60_00002_199948_1517807322766&filename=GI+Rules.pdf&type=rule"
+          ],
+          "contains": "SOURCE PASSAGE REVIEW REQUIRED",
+          "raw_sha256": []
+        }
+      ]
+    },
+    {
+      "id": "indiacode-09",
+      "source": "indiacode",
+      "query": "India Code Drugs and Cosmetics Act Ayurvedic Siddha Unani drugs",
+      "reviewed": false,
+      "review_note": "Pending fresh official-source passage verification.",
+      "targets": [
+        {
+          "source": "indiacode",
+          "urls": [
+            "https://www.indiacode.nic.in/bitstream/123456789/2409/5/A1940-23.pdf"
+          ],
+          "contains": "SOURCE PASSAGE REVIEW REQUIRED",
+          "raw_sha256": []
+        }
+      ]
+    },
+    {
+      "id": "indiacode-10",
+      "source": "indiacode",
+      "query": "India Code Drugs and Cosmetics Act manufacture sale licensing",
+      "reviewed": false,
+      "review_note": "Pending fresh official-source passage verification.",
+      "targets": [
+        {
+          "source": "indiacode",
+          "urls": [
+            "https://www.indiacode.nic.in/bitstream/123456789/2409/5/A1940-23.pdf"
+          ],
+          "contains": "SOURCE PASSAGE REVIEW REQUIRED",
+          "raw_sha256": []
+        }
+      ]
+    },
+    {
+      "id": "tkdl-01",
+      "source": "tkdl",
+      "query": "TKDL public website traditional knowledge digital library overview",
+      "reviewed": false,
+      "review_note": "Pending fresh official-source passage verification.",
+      "targets": [
+        {
+          "source": "tkdl",
+          "urls": [
+            "https://www.tkdl.res.in/tkdl/langdefault/common/Abouttkdl.asp"
+          ],
+          "contains": "SOURCE PASSAGE REVIEW REQUIRED",
+          "raw_sha256": []
+        }
+      ]
+    },
+    {
+      "id": "tkdl-02",
+      "source": "tkdl",
+      "query": "TKDL access agreement patent offices",
+      "reviewed": false,
+      "review_note": "Pending fresh official-source passage verification.",
+      "targets": [
+        {
+          "source": "tkdl",
+          "urls": [
+            "https://www.tkdl.res.in/tkdl/langdefault/common/Home.asp?GL=Eng",
+            "https://www.tkdl.res.in/tkdl/langdefault/common/Abouttkdl.asp"
+          ],
+          "contains": "SOURCE PASSAGE REVIEW REQUIRED",
+          "raw_sha256": []
+        }
+      ]
+    },
+    {
+      "id": "tkdl-03",
+      "source": "tkdl",
+      "query": "TKDL biopiracy patent applications about",
+      "reviewed": false,
+      "review_note": "Pending fresh official-source passage verification.",
+      "targets": [
+        {
+          "source": "tkdl",
+          "urls": [
+            "https://www.tkdl.res.in/tkdl/langdefault/common/Abouttkdl.asp"
+          ],
+          "contains": "SOURCE PASSAGE REVIEW REQUIRED",
+          "raw_sha256": []
+        }
+      ]
+    },
+    {
+      "id": "tkdl-04",
+      "source": "tkdl",
+      "query": "TKDL proprietary database general information",
+      "reviewed": false,
+      "review_note": "Pending fresh official-source passage verification.",
+      "targets": [
+        {
+          "source": "tkdl",
+          "urls": [
+            "https://tkdl.res.in/tkdl/langdefault/common/GenInfo.asp?GL=Eng"
+          ],
+          "contains": "SOURCE PASSAGE REVIEW REQUIRED",
+          "raw_sha256": []
+        }
+      ]
+    },
+    {
+      "id": "tkdl-05",
+      "source": "tkdl",
+      "query": "TKDL public Ayurveda principles",
+      "reviewed": false,
+      "review_note": "Pending fresh official-source passage verification.",
+      "targets": [
+        {
+          "source": "tkdl",
+          "urls": [
+            "https://tkdl.res.in/tkdl/langdefault/Ayurveda/Ayu_Principles.asp?GL=Eng"
+          ],
+          "contains": "SOURCE PASSAGE REVIEW REQUIRED",
+          "raw_sha256": []
+        }
+      ]
+    },
+    {
+      "id": "tkdl-06",
+      "source": "tkdl",
+      "query": "TKDL public Ayurveda drugs information",
+      "reviewed": false,
+      "review_note": "Pending fresh official-source passage verification.",
+      "targets": [
+        {
+          "source": "tkdl",
+          "urls": [
+            "https://tkdl.res.in/tkdl/langdefault/Ayurveda/Ayu_Drugs.asp?GL=Eng"
+          ],
+          "contains": "SOURCE PASSAGE REVIEW REQUIRED",
+          "raw_sha256": []
+        }
+      ]
+    },
+    {
+      "id": "tkdl-07",
+      "source": "tkdl",
+      "query": "TKDL public Ayurveda glossary",
+      "reviewed": false,
+      "review_note": "Pending fresh official-source passage verification.",
+      "targets": [
+        {
+          "source": "tkdl",
+          "urls": [
+            "https://tkdl.res.in/tkdl/langdefault/Ayurveda/Ayu_Glossary.asp?GL=Eng"
+          ],
+          "contains": "SOURCE PASSAGE REVIEW REQUIRED",
+          "raw_sha256": []
+        }
+      ]
+    },
+    {
+      "id": "tkdl-08",
+      "source": "tkdl",
+      "query": "TKDL public Ayurveda frequently asked questions",
+      "reviewed": false,
+      "review_note": "Pending fresh official-source passage verification.",
+      "targets": [
+        {
+          "source": "tkdl",
+          "urls": [
+            "https://tkdl.res.in/tkdl/langdefault/Ayurveda/Ayu_FAQ.asp?GL=Eng"
+          ],
+          "contains": "SOURCE PASSAGE REVIEW REQUIRED",
+          "raw_sha256": []
+        }
+      ]
+    },
+    {
+      "id": "tkdl-09",
+      "source": "tkdl",
+      "query": "TKDL public Ayurveda cosmetics information",
+      "reviewed": false,
+      "review_note": "Pending fresh official-source passage verification.",
+      "targets": [
+        {
+          "source": "tkdl",
+          "urls": [
+            "https://tkdl.res.in/tkdl/langdefault/Ayurveda/Ayu_Cosmetics.asp?GL=Eng"
+          ],
+          "contains": "SOURCE PASSAGE REVIEW REQUIRED",
+          "raw_sha256": []
+        }
+      ]
+    },
+    {
+      "id": "tkdl-10",
+      "source": "tkdl",
+      "query": "TKDL public Ayurveda medicinal plant glossary",
+      "reviewed": false,
+      "review_note": "Pending fresh official-source passage verification.",
+      "targets": [
+        {
+          "source": "tkdl",
+          "urls": [
+            "https://tkdl.res.in/tkdl/langdefault/Ayurveda/Ayu_Glossary.asp?GL=Eng"
+          ],
+          "contains": "SOURCE PASSAGE REVIEW REQUIRED",
+          "raw_sha256": []
+        }
+      ]
+    }
+  ]
+}

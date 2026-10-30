@@ -1,0 +1,223 @@
+{
+  "schema_version": 1,
+  "purpose": "Reviewed archived wording only; no current-law certification",
+  "annotations": [
+    {
+      "annotation_id": "ipindia-1af224b702d7566e1d1d-amends-wording",
+      "relation": "amends",
+      "target_title": "Patents Rules, 2003",
+      "statement_scope": "publication_uncertain",
+      "reviewer": "Codex archived-text evidence inspection",
+      "reviewed_at": "2026-10-15T18:46:22.779427+00:00",
+      "review_note": "Exact archived wording and PDF page checked offline; no conclusion about actual commencement, current force, later repeal or consolidated version. Page 1 displays a placeholder notification number. Publication formalities remain unverified; do not treat this copy as proof of a finalized gazette notification.",
+      "evidence": {
+        "source": "ipindia",
+        "document_id": "1af224b702d7566e1d1d",
+        "official_url": "https://ipindia.gov.in/frontend/pdf/patents/rules/1_42_1_Patent__Amendment_Rules_2016_16May2016.pdf",
+        "raw_path": "data/raw/ipindia/patents/8c8a7513d6dfd7ed4e276c57c49ee304b9426bf87544680418ad7606d25099d9.pdf",
+        "sha256": "8c8a7513d6dfd7ed4e276c57c49ee304b9426bf87544680418ad7606d25099d9",
+        "page": 1,
+        "provision": "Amendment preamble immediately preceding rule 1",
+        "quote": "the Central Government hereby makes the following rules further to amend the Patents Rules, 2003, namely:-"
+      },
+      "qualifying_evidence": [
+        {
+          "kind": "placeholder_notification_identifier",
+          "page": 1,
+          "quote": "GSR---------- (E)."
+        }
+      ]
+    },
+    {
+      "annotation_id": "ipindia-1a63a733dc7582ff6b53-amends-wording",
+      "relation": "amends",
+      "target_title": "Patents Rules, 2003",
+      "statement_scope": "operative_wording",
+      "reviewer": "Codex archived-text evidence inspection",
+      "reviewed_at": "2026-10-15T18:46:22.805135+00:00",
+      "review_note": "Exact archived wording and PDF page checked offline; no conclusion about actual commencement, current force, later repeal or consolidated version.",
+      "evidence": {
+        "source": "ipindia",
+        "document_id": "1a63a733dc7582ff6b53",
+        "official_url": "https://ipindia.gov.in/frontend/pdf/patents/rules/Patents__Amendment__Rules__2021.pdf",
+        "raw_path": "data/raw/ipindia/patents/5f8ebb98140f77b4edcdc0c8067468ab97853626b37cb8c5493a3544dd88e8c4.pdf",
+        "sha256": "5f8ebb98140f77b4edcdc0c8067468ab97853626b37cb8c5493a3544dd88e8c4",
+        "page": 4,
+        "provision": "Amendment preamble immediately preceding rule 1",
+        "quote": "the Central Government hereby makes the following rules further to amend the Patents Rules, 2003, namely: -"
+      }
+    },
+    {
+      "annotation_id": "ipindia-8f25dfc64f723241bee9-amends-wording",
+      "relation": "amends",
+      "target_title": "Patents Rules, 2003",
+      "statement_scope": "operative_wording",
+      "reviewer": "Codex archived-text evidence inspection",
+      "reviewed_at": "2026-10-15T18:46:22.832686+00:00",
+      "review_note": "Exact archived wording and PDF page checked offline; no conclusion about actual commencement, current force, later repeal or consolidated version.",
+      "evidence": {
+        "source": "ipindia",
+        "document_id": "8f25dfc64f723241bee9",
+        "official_url": "https://ipindia.gov.in/frontend/pdf/patents/rules/patents_amendment_rules_2020.pdf",
+        "raw_path": "data/raw/ipindia/patents/3591716434a12f4fa4cc0f50d8e7d3fb747d7fe0e2e87e34cd41f80f27439f2a.pdf",
+        "sha256": "3591716434a12f4fa4cc0f50d8e7d3fb747d7fe0e2e87e34cd41f80f27439f2a",
+        "page": 4,
+        "provision": "Amendment preamble immediately preceding rule 1",
+        "quote": "the Central Government hereby makes the following rules further to amend the Patents Rules, 2003, namely:-"
+      }
+    },
+    {
+      "annotation_id": "ipindia-7fc17c97e4c5bba02f93-amends-wording",
+      "relation": "amends",
+      "target_title": "Patents Rules, 2003",
+      "statement_scope": "operative_wording",
+      "reviewer": "Codex archived-text evidence inspection",
+      "reviewed_at": "2026-10-15T18:46:22.864619+00:00",
+      "review_note": "Exact archived wording and PDF page checked offline; no conclusion about actual commencement, current force, later repeal or consolidated version.",
+      "evidence": {
+        "source": "ipindia",
+        "document_id": "7fc17c97e4c5bba02f93",
+        "official_url": "https://ipindia.gov.in/frontend/pdf/patents/rules/patents_amendment_rules_2019.pdf",
+        "raw_path": "data/raw/ipindia/patents/0484c6dc081e85f520de7e73258769bfc83d1f40ee495a8fd3f9d4f212b6cfd2.pdf",
+        "sha256": "0484c6dc081e85f520de7e73258769bfc83d1f40ee495a8fd3f9d4f212b6cfd2",
+        "page": 5,
+        "provision": "Amendment preamble immediately preceding rule 1",
+        "quote": "the Central Government hereby makes the following rules further to amend the Patents Rules, 2003, namely:-"
+      }
+    },
+    {
+      "annotation_id": "ipindia-9f3eca85d402bfed2372-amends-wording",
+      "relation": "amends",
+      "target_title": "Patents Rules, 2003",
+      "statement_scope": "operative_wording",
+      "reviewer": "Codex archived-text evidence inspection",
+      "reviewed_at": "2026-10-15T18:46:22.884551+00:00",
+      "review_note": "Exact archived wording and PDF page checked offline; no conclusion about actual commencement, current force, later repeal or consolidated version.",
+      "evidence": {
+        "source": "ipindia",
+        "document_id": "9f3eca85d402bfed2372",
+        "official_url": "https://ipindia.gov.in/frontend/pdf/patents/rules/1_83_1_Patent_Amendment_Rule_2024_Gazette_Copy.pdf",
+        "raw_path": "data/raw/ipindia/patents/2c7c546b595ce1137f08cbd977f9e17ba1668cbf78e9c2fd124ef8961158abe2.pdf",
+        "sha256": "2c7c546b595ce1137f08cbd977f9e17ba1668cbf78e9c2fd124ef8961158abe2",
+        "page": 22,
+        "provision": "Amendment preamble immediately preceding rule 1",
+        "quote": "the Central Government hereby makes the following rules further to amend the Patents Rules, 2003, namely: -"
+      }
+    },
+    {
+      "annotation_id": "ipindia-a7f549690dee526a26fc-amends-wording",
+      "relation": "amends",
+      "target_title": "Patents Rules, 2003",
+      "statement_scope": "operative_wording",
+      "reviewer": "Codex archived-text evidence inspection",
+      "reviewed_at": "2026-10-15T18:46:22.898005+00:00",
+      "review_note": "Exact archived wording and PDF page checked offline; no conclusion about actual commencement, current force, later repeal or consolidated version.",
+      "evidence": {
+        "source": "ipindia",
+        "document_id": "a7f549690dee526a26fc",
+        "official_url": "https://ipindia.gov.in/frontend/pdf/patents/rules/Patent_second_amendment_rules_2024.pdf",
+        "raw_path": "data/raw/ipindia/patents/51af3749e334fea6fc78d5504df26d5e0eff2086e8059543f55a5322a675a8a7.pdf",
+        "sha256": "51af3749e334fea6fc78d5504df26d5e0eff2086e8059543f55a5322a675a8a7",
+        "page": 6,
+        "provision": "Amendment preamble immediately preceding rule 1",
+        "quote": "the Central Government hereby makes the following rules further to amend the Patents Rules, 2003, namely:-"
+      }
+    },
+    {
+      "annotation_id": "ipindia-e4c2b2b13c163798d0bd-amends-wording",
+      "relation": "amends",
+      "target_title": "Patent Rules, 2003",
+      "statement_scope": "operative_wording",
+      "reviewer": "Codex archived-text evidence inspection",
+      "reviewed_at": "2026-10-15T18:46:22.910650+00:00",
+      "review_note": "Exact archived wording and PDF page checked offline; no conclusion about actual commencement, current force, later repeal or consolidated version. The original preamble uses singular Patent Rules, 2003; that wording is retained verbatim. Canonical instrument identity requires review.",
+      "evidence": {
+        "source": "ipindia",
+        "document_id": "e4c2b2b13c163798d0bd",
+        "official_url": "https://ipindia.gov.in/storage/uploads/docs-operator/0cd91608-5e17-4c91-accb-84f81b05fe9b.pdf",
+        "raw_path": "data/raw/ipindia/patents/25d1dc09298090adbe893710348fc98426dcb18661f27e0890c43b2d49e34a71.pdf",
+        "sha256": "25d1dc09298090adbe893710348fc98426dcb18661f27e0890c43b2d49e34a71",
+        "page": 6,
+        "provision": "Amendment preamble immediately preceding rule 1",
+        "quote": "the Central Government hereby makes the following rules further to amend the Patent Rules, 2003, namely: -"
+      },
+      "target_identity_review_required": true
+    },
+    {
+      "annotation_id": "ipindia-c77577f8146e15e3a8cd-amends-wording",
+      "relation": "amends",
+      "target_title": "Designs Rules, 2001",
+      "statement_scope": "operative_wording",
+      "reviewer": "Codex archived-text evidence inspection",
+      "reviewed_at": "2026-10-15T18:46:22.949101+00:00",
+      "review_note": "Exact archived wording and PDF page checked offline; no conclusion about actual commencement, current force, later repeal or consolidated version.",
+      "evidence": {
+        "source": "ipindia",
+        "document_id": "c77577f8146e15e3a8cd",
+        "official_url": "https://ipindia.gov.in/storage/uploads/docs-operator/6f57dccd-ad81-4f47-a8ee-5ad201d2fb42.pdf",
+        "raw_path": "data/raw/ipindia/designs/c631927da0eb552bbbb9f8b1a20259f6f7a06e032470015969fc29777314715a.pdf",
+        "sha256": "c631927da0eb552bbbb9f8b1a20259f6f7a06e032470015969fc29777314715a",
+        "page": 10,
+        "provision": "Amendment preamble immediately preceding rule 1",
+        "quote": "the Central Government hereby makes the following rules further to amend the Designs Rules, 2001, namely:-"
+      }
+    },
+    {
+      "annotation_id": "ipindia-f2cabaf36c5fd716522a-amends-wording",
+      "relation": "amends",
+      "target_title": "Patents Rules, 2003",
+      "statement_scope": "operative_wording",
+      "reviewer": "Codex archived-text evidence inspection",
+      "reviewed_at": "2026-10-15T18:46:22.981510+00:00",
+      "review_note": "Exact archived wording and PDF page checked offline; no conclusion about actual commencement, current force, later repeal or consolidated version.",
+      "evidence": {
+        "source": "ipindia",
+        "document_id": "f2cabaf36c5fd716522a",
+        "official_url": "https://ipindia.gov.in/frontend/pdf/patents/rules/Patents__2nd_Amendment__Rules__2020.pdf",
+        "raw_path": "data/raw/ipindia/patents/f5b4f8806714c8820838eb00cc06290d51e5e7696d0a8b8d08c02bb731b8a760.pdf",
+        "sha256": "f5b4f8806714c8820838eb00cc06290d51e5e7696d0a8b8d08c02bb731b8a760",
+        "page": 6,
+        "provision": "Amendment preamble immediately preceding rule 1",
+        "quote": "the Central Government hereby makes the following rules further to amend the Patents Rules, 2003, namely:-"
+      }
+    },
+    {
+      "annotation_id": "ipindia-54a43385c9091f54ae5a-amends-wording",
+      "relation": "amends",
+      "target_title": "Patents Rules, 2003",
+      "statement_scope": "draft_proposal",
+      "reviewer": "Codex archived-text evidence inspection",
+      "reviewed_at": "2026-10-15T18:46:23.009205+00:00",
+      "review_note": "Exact archived wording and PDF page checked offline; no conclusion about actual commencement, current force, later repeal or consolidated version. The quotation explicitly says draft/proposes: this is a proposal statement, not evidence that an amendment took effect.",
+      "evidence": {
+        "source": "ipindia",
+        "document_id": "54a43385c9091f54ae5a",
+        "official_url": "https://ipindia.gov.in/frontend/pdf/patents/rules/Draft_Patent_Rules_2024_20240102.pdf",
+        "raw_path": "data/raw/ipindia/patents/9713a2aff6dc0befe74371ea5d5619800d3811accac33115a1224216f5ea7dde.pdf",
+        "sha256": "9713a2aff6dc0befe74371ea5d5619800d3811accac33115a1224216f5ea7dde",
+        "page": 9,
+        "provision": "Opening draft-publication paragraph",
+        "quote": "The following draft rules to further amend the Patents Rules, 2003 which the Central Government proposes to make"
+      }
+    },
+    {
+      "annotation_id": "ipindia-9d621a7b9857d66c3978-amends-wording",
+      "relation": "amends",
+      "target_title": "Patents Rules, 2003",
+      "statement_scope": "draft_proposal",
+      "reviewer": "Codex archived-text evidence inspection",
+      "reviewed_at": "2026-10-15T18:46:23.042127+00:00",
+      "review_note": "Exact archived wording and PDF page checked offline; no conclusion about actual commencement, current force, later repeal or consolidated version. The quotation explicitly says draft/proposes: this is a proposal statement, not evidence that an amendment took effect.",
+      "evidence": {
+        "source": "ipindia",
+        "document_id": "9d621a7b9857d66c3978",
+        "official_url": "https://ipindia.gov.in/frontend/pdf/patents/rules/Draft_Amendment_Rules__2021_Published_in_Gazette_of_India.pdf",
+        "raw_path": "data/raw/ipindia/patents/4456d53e768999636b5c9295fda2036d0c235e7a36c68484f517d92f9acd4fd9.pdf",
+        "sha256": "4456d53e768999636b5c9295fda2036d0c235e7a36c68484f517d92f9acd4fd9",
+        "page": 9,
+        "provision": "Opening draft-publication paragraph",
+        "quote": "The following draft rules to further amend the Patents Rules, 2003 which the Central Government proposes to make"
+      }
+    }
+  ]
+}

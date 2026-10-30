@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>Evidence Passport · AyurIP Private Research</title>
+  <link rel="stylesheet" href="/assets/base.css">
+  <link rel="stylesheet" href="/assets/passport.css">
+  <script src="/assets/passport.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#intake">Skip to the research form</a>
+  <header class="site-header passport-header">
+    <a class="brand" href="/" aria-label="AyurIP Evidence Passport home"><span class="brand-symbol" aria-hidden="true">a<span>i</span></span><span>Ayur<i>IP</i></span></a>
+    <span class="header-caption">EVIDENCE BEFORE CONCLUSIONS</span>
+    <span class="private-label">Private research workspace</span>
+  </header>
+  <main id="main">
+    <section class="intro passport-intro" aria-labelledby="page-title">
+      <div class="eyebrow"><span class="small-rule" aria-hidden="true"></span> INDIA / PATENT RESEARCH</div>
+      <h1 id="page-title">Your idea.<br><em>A clearer evidence trail.</em></h1>
+      <p class="intro-copy">Describe an Ayurvedic invention at a high level. Your Evidence Passport connects potential research issues with exact passages from the available archived IP India patent sources.</p>
+      <p class="scope-line">Informational evidence only <span aria-hidden="true">·</span> Legal relevance unreviewed <span aria-hidden="true">·</span> No patent eligibility determination</p>
+    </section>
+
+    <div class="passport-layout">
+      <section id="intake" class="intake-panel" aria-labelledby="intake-title">
+        <div class="section-heading"><div><span class="eyebrow">01 / RESEARCH INTAKE</span><h2 id="intake-title">Start with the essentials</h2></div><span class="required-note">* Required</span></div>
+        <div class="privacy-notice" id="privacy-warning"><strong>Keep your invention confidential.</strong><p>Do not submit confidential details, recipes or ratios, trade secrets, or personal information. Use only a non-confidential, high-level description.</p></div>
+        <div class="session-state" role="status" aria-live="polite" aria-atomic="true" aria-busy="true"><span id="session-status">Connecting to the private research service…</span></div>
+        <button id="session-retry" class="text-button" type="button" aria-describedby="session-status" hidden>Retry connection</button>
+        <noscript><p class="privacy-notice">JavaScript is required to submit this form to the private research service.</p></noscript>
+        <form id="passport-form" aria-describedby="privacy-warning" autocomplete="off">
+          <fieldset id="intake-fields">
+            <legend class="sr-only">Non-confidential invention details</legend>
+            <div class="field-group"><label for="description">Non-confidential invention description <span aria-hidden="true">*</span></label><p class="field-hint" id="description-hint">What does it do, and what are you changing? Use 20–1,600 characters. Omit recipes, ratios, and identifying details.</p><textarea id="description" name="description" required minlength="20" maxlength="1600" rows="5" aria-describedby="description-hint description-count" placeholder="Describe the purpose and broad technical approach…" spellcheck="false"></textarea><span id="description-count" class="character-count">0 / 1,600 characters</span></div>
+            <div class="field-grid">
+              <div class="field-group"><label for="novelty">What may be new? <span aria-hidden="true">*</span></label><select id="novelty" name="novelty" required><option value="">Choose one</option><option value="new_formulation">A new formulation</option><option value="new_process">A new process</option><option value="modified_formulation">A modified formulation</option><option value="delivery_mechanism">A delivery mechanism</option><option value="unsure">I am unsure</option></select></div>
+              <div class="field-group"><label for="goal">Primary research goal <span aria-hidden="true">*</span></label><select id="goal" name="goal" required><option value="">Choose your goal</option><option value="patent_research">Patent research</option></select></div>
+              <div class="field-group"><label for="jurisdiction">Jurisdiction <span aria-hidden="true">*</span></label><select id="jurisdiction" name="jurisdiction" required aria-describedby="jurisdiction-hint"><option value="India">India</option></select><p id="jurisdiction-hint" class="field-hint">This workspace covers India only.</p></div>
+              <div class="field-group"><label for="traditional-use">Known traditional use</label><select id="traditional-use" name="traditional_use"><option value="unknown">Unknown / unsure</option><option value="yes">Yes</option><option value="no">No</option></select></div>
+            </div>
+            <div class="field-group"><label for="ingredients">Broad ingredient names <span class="optional">Optional</span></label><p id="ingredients-hint" class="field-hint">Names only; omit quantities, proportions, and confidential combinations. Maximum 400 characters.</p><textarea id="ingredients" name="ingredients" maxlength="400" rows="2" aria-describedby="ingredients-hint" spellcheck="false"></textarea></div>
+            <div class="field-group"><label for="public-disclosure">Has this idea been publicly disclosed?</label><select id="public-disclosure" name="public_disclosure" aria-describedby="disclosure-hint"><option value="unknown">Unknown / unsure</option><option value="yes">Yes</option><option value="no">No</option></select><p id="disclosure-hint" class="field-hint">This is research context. The service does not determine legal consequences or filing deadlines.</p></div>
+            <div class="field-group"><label for="additional-context">Additional non-confidential context <span class="optional">Optional</span></label><p id="context-hint" class="field-hint">Any broad research question or uncertainty? Maximum 400 characters.</p><textarea id="additional-context" name="additional_context" maxlength="400" rows="2" aria-describedby="context-hint" spellcheck="false"></textarea></div>
+            <label class="acknowledgment" for="acknowledgment"><input id="acknowledgment" name="acknowledged_nonconfidential" type="checkbox" required><span>I confirm this submission contains no confidential details, recipes or ratios, trade secrets, or personal information. <span aria-hidden="true">*</span></span></label>
+            <div class="form-actions"><button id="submit-passport" class="submit-button" type="submit" disabled><span>Create Evidence Passport</span><span aria-hidden="true">↗</span></button><div class="secondary-actions"><button id="example-fill" class="text-button" type="button">Use a non-confidential example</button><button id="clear-form" class="text-button" type="button">Clear form &amp; results</button></div></div>
+          </fieldset>
+        </form>
+        <p id="form-status" class="form-status" role="status" aria-live="polite" aria-atomic="true"></p>
+        <p id="form-error" class="form-error" role="alert" hidden></p>
+      </section>
+      <aside class="passport-sidebar" aria-labelledby="scope-title">
+        <span class="eyebrow">THE PASSPORT / SCOPE</span><h2 id="scope-title">A research starting point.</h2><p>Each issue should lead back to evidence you can inspect, with uncertainties kept visible.</p>
+        <ol class="process-list"><li><span>01</span><div><strong>Frame the research</strong><p>Your high-level description provides context.</p></div></li><li><span>02</span><div><strong>Inspect the source</strong><p>Read exact quotes, page references, and provenance.</p></div></li><li><span>03</span><div><strong>Verify with a professional</strong><p>Confirm legal relevance and current source status.</p></div></li></ol>
+        <div class="boundary-note"><h3>Checks outside this passport</h3><ul><li>Patent eligibility or grant prospects</li><li>Novelty clearance and freedom to operate</li><li>Regulatory approval or compliance</li><li>Clinical efficacy, safety, or therapeutic claims</li><li>Whether a source is currently in force</li></ul><p>These checks remain unresolved. TKDL records and access-and-benefit-sharing (ABS) requirements are not covered. The available archived corpus may be incomplete or outdated.</p></div>
+        <p class="privacy-footnote">This page does not save your inputs or results to browser storage. Clear the form when you finish.</p>
+      </aside>
+    </div>
+    <section id="passport-results" class="passport-results" aria-labelledby="results-title" aria-busy="false" hidden>
+      <div class="section-heading"><div><span class="eyebrow">02 / EVIDENCE PASSPORT</span><h2 id="results-title" tabindex="-1">Your evidence trail</h2></div><span id="result-status" class="status-badge"></span></div>
+      <div id="result-content"></div>
+    </section>
+  </main>
+  <footer class="site-footer passport-footer"><span class="footer-brand">AyurIP <span>/</span> Evidence Passport</span><p>Private research interface. Informational evidence only. No eligibility, filing, or current-law determination.</p></footer>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "enabled": true,
+  "mode": "verified_extracts",
+  "provider": "ollama",
+  "base_url": "http://host.docker.internal:11434",
+  "native_base_url": "http://127.0.0.1:11434",
+  "model": "ministral-3:3b",
+  "model_digest": "f04aa1c738f64e13c625b82ae92504fc0260fa6723b509ed1ece0fa188179b1d",
+  "timeout_seconds": 45,
+  "max_context_chars": 6500,
+  "max_claims": 4,
+  "max_output_tokens": 600,
+  "temperature": 0
+}

@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "ipindia": {
+    "authority": "IP India / CGPDTM",
+    "evidence_role": "legal_source",
+    "seeds": [
+      "https://ipindia.gov.in/resource/patents-resources-act",
+      "https://ipindia.gov.in/resource/patents-resources-rules",
+      "https://ipindia.gov.in/resource/patents-resources-guidelines",
+      "https://ipindia.gov.in/resource/patents-resources-manuals",
+      "https://ipindia.gov.in/trade-marks-resources-act",
+      "https://ipindia.gov.in/trade-marks-resources-rules",
+      "https://ipindia.gov.in/geographical-indications-resources-act",
+      "https://ipindia.gov.in/geographical-indications-resources-rules",
+      "https://ipindia.gov.in/designs-resources-act",
+      "https://ipindia.gov.in/designs-resources-rules"
+    ],
+    "archive_existing": true,
+    "max_discovered": 400
+  },
+  "indiacode": {
+    "authority": "India Code / Government of India",
+    "evidence_role": "legal_source",
+    "seeds": [
+      "https://indiacode.gov.in/server/api"
+    ],
+    "max_discovered": 100,
+    "legacy_seeds": [
+      "https://www.indiacode.nic.in/indiacode/handle/123456789/1392?view_type=browse",
+      "https://www.indiacode.nic.in/indiacode/handle/123456789/2046?view_type=browse",
+      "https://www.indiacode.nic.in/indiacode/handle/123456789/1981?view_type=browse",
+      "https://www.indiacode.nic.in/indiacode/handle/123456789/2409?view_type=browse",
+      "https://www.indiacode.nic.in/bitstream/123456789/1392/1/A1970-39.pdf",
+      "https://www.indiacode.nic.in/bitstream/123456789/2046/4/a2003-18.pdf",
+      "https://upload.indiacode.nic.in/showfile?actid=AC_CEN_16_18_000010_200318_1517807327125&filename=bd_rules_2024_%281%29.pdf&type=rule",
+      "https://www.indiacode.nic.in/bitstream/123456789/1981/1/a199948.pdf",
+      "https://upload.indiacode.nic.in/showfile?actid=AC_CEN_11_60_00002_199948_1517807322766&filename=GI+Rules.pdf&type=rule",
+      "https://www.indiacode.nic.in/bitstream/123456789/2409/5/A1940-23.pdf"
+    ],
+    "api_root": "https://indiacode.gov.in/server/api",
+    "instruments": [
+      {
+        "title": "The Patents Act, 1970",
+        "enactment_year": 1970,
+        "act_number": 39
+      },
+      {
+        "title": "The Biological Diversity Act, 2002",
+        "enactment_year": 2003,
+        "act_number": 18
+      },
+      {
+        "title": "The Geographical Indications of Goods (Registration and Protection) Act, 1999",
+        "enactment_year": 1999,
+        "act_number": 48
+      },
+      {
+        "title": "The Drugs and Cosmetics Act, 1940",
+        "enactment_year": 1940,
+        "act_number": 23
+      }
+    ],
+    "subordinate_relevance": "rules|regulations|ayurvedic|siddha|unani|biological|benefit sharing|geographical indication"
+  },
+  "tkdl": {
+    "authority": "TKDL public website / CSIR",
+    "evidence_role": "institutional_background",
+    "seeds": [
+      "https://www.tkdl.res.in/tkdl/langdefault/common/Home.asp?GL=Eng",
+      "https://www.tkdl.res.in/tkdl/langdefault/common/Abouttkdl.asp",
+      "https://tkdl.res.in/tkdl/langdefault/common/GenInfo.asp?GL=Eng"
+    ],
+    "archive_existing_candidates": true,
+    "max_discovered": 70
+  }
+}

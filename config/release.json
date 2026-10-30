@@ -1,0 +1,4 @@
+{
+  "scheduler_enabled": false,
+  "reason": "three-source release gates not passed"
+}

@@ -1,0 +1,29 @@
+{
+  "ipindia": {
+    "approved": false,
+    "reviewer": "",
+    "reviewed_at": "",
+    "policy_url": "",
+    "notes": "Unreviewed. Record verified access evidence before permitting capture.",
+    "permitted_prefixes": [],
+    "evidence": []
+  },
+  "indiacode": {
+    "approved": false,
+    "reviewer": "",
+    "reviewed_at": "",
+    "policy_url": "",
+    "notes": "Unreviewed. Record verified access evidence before permitting capture.",
+    "permitted_prefixes": [],
+    "evidence": []
+  },
+  "tkdl": {
+    "approved": false,
+    "reviewer": "",
+    "reviewed_at": "",
+    "policy_url": "",
+    "notes": "Unreviewed. Record verified access evidence before permitting capture.",
+    "permitted_prefixes": [],
+    "evidence": []
+  }
+}

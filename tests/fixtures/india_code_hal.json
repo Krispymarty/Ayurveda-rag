@@ -1,0 +1,527 @@
+{
+  "origin": "Synthetic recorded HAL protocol fixture, not a live legal snapshot",
+  "config": {
+    "authority": "India Code / Government of India",
+    "evidence_role": "legal_source",
+    "seeds": [
+      "https://indiacode.gov.in/server/api"
+    ],
+    "max_discovered": 100,
+    "legacy_seeds": [
+      "https://www.indiacode.nic.in/indiacode/handle/123456789/1392?view_type=browse",
+      "https://www.indiacode.nic.in/indiacode/handle/123456789/2046?view_type=browse",
+      "https://www.indiacode.nic.in/indiacode/handle/123456789/1981?view_type=browse",
+      "https://www.indiacode.nic.in/indiacode/handle/123456789/2409?view_type=browse",
+      "https://www.indiacode.nic.in/bitstream/123456789/1392/1/A1970-39.pdf",
+      "https://www.indiacode.nic.in/bitstream/123456789/2046/4/a2003-18.pdf",
+      "https://upload.indiacode.nic.in/showfile?actid=AC_CEN_16_18_000010_200318_1517807327125&filename=bd_rules_2024_%281%29.pdf&type=rule",
+      "https://www.indiacode.nic.in/bitstream/123456789/1981/1/a199948.pdf",
+      "https://upload.indiacode.nic.in/showfile?actid=AC_CEN_11_60_00002_199948_1517807322766&filename=GI+Rules.pdf&type=rule",
+      "https://www.indiacode.nic.in/bitstream/123456789/2409/5/A1940-23.pdf"
+    ],
+    "api_root": "https://indiacode.gov.in/server/api",
+    "instruments": [
+      {
+        "title": "The Patents Act, 1970",
+        "enactment_year": 1970,
+        "act_number": 39
+      },
+      {
+        "title": "The Biological Diversity Act, 2002",
+        "enactment_year": 2003,
+        "act_number": 18
+      },
+      {
+        "title": "The Geographical Indications of Goods (Registration and Protection) Act, 1999",
+        "enactment_year": 1999,
+        "act_number": 48
+      },
+      {
+        "title": "The Drugs and Cosmetics Act, 1940",
+        "enactment_year": 1940,
+        "act_number": 23
+      }
+    ],
+    "subordinate_relevance": "rules|regulations|ayurvedic|siddha|unani|biological|benefit sharing|geographical indication"
+  },
+  "responses": {
+    "https://indiacode.gov.in/server/api": {
+      "_links": {
+        "discover": {
+          "href": "https://indiacode.gov.in/server/api/discover"
+        }
+      }
+    },
+    "https://indiacode.gov.in/server/api/discover": {
+      "_links": {
+        "search": {
+          "href": "https://indiacode.gov.in/server/api/discover/search"
+        }
+      }
+    },
+    "https://indiacode.gov.in/server/api/discover/search?query=The+Patents+Act%2C+1970&size=20&page=0": {
+      "_embedded": {
+        "searchResult": {
+          "_embedded": {
+            "objects": [
+              {
+                "_embedded": {
+                  "indexableObject": {
+                    "type": "item",
+                    "id": "00000000-0000-0000-0000-000000000001",
+                    "metadata": {
+                      "dc.title": [
+                        {
+                          "value": "The Patents Act, 1970"
+                        }
+                      ],
+                      "dc.description.actnumber": [
+                        {
+                          "value": "39"
+                        }
+                      ],
+                      "dc.date.issued": [
+                        {
+                          "value": "1970"
+                        }
+                      ],
+                      "dc.description.acttype": [
+                        {
+                          "value": "Central"
+                        }
+                      ]
+                    },
+                    "_links": {
+                      "self": {
+                        "href": "https://indiacode.gov.in/server/api/core/items/00000000-0000-0000-0000-000000000001"
+                      },
+                      "bundles": {
+                        "href": "https://indiacode.gov.in/server/api/core/items/00000000-0000-0000-0000-000000000001/bundles"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "page": {
+            "number": 0,
+            "totalPages": 1
+          }
+        }
+      }
+    },
+    "https://indiacode.gov.in/server/api/core/items/00000000-0000-0000-0000-000000000001": {
+      "type": "item",
+      "id": "00000000-0000-0000-0000-000000000001",
+      "metadata": {
+        "dc.title": [
+          {
+            "value": "The Patents Act, 1970"
+          }
+        ],
+        "dc.description.actnumber": [
+          {
+            "value": "39"
+          }
+        ],
+        "dc.date.issued": [
+          {
+            "value": "1970"
+          }
+        ],
+        "dc.description.acttype": [
+          {
+            "value": "Central"
+          }
+        ]
+      },
+      "_links": {
+        "self": {
+          "href": "https://indiacode.gov.in/server/api/core/items/00000000-0000-0000-0000-000000000001"
+        },
+        "bundles": {
+          "href": "https://indiacode.gov.in/server/api/core/items/00000000-0000-0000-0000-000000000001/bundles"
+        }
+      }
+    },
+    "https://indiacode.gov.in/server/api/core/items/00000000-0000-0000-0000-000000000001/bundles": {
+      "_embedded": {
+        "bundles": [
+          {
+            "type": "bundle",
+            "name": "ORIGINAL",
+            "_links": {
+              "bitstreams": {
+                "href": "https://indiacode.gov.in/server/api/core/bundles/00000000-0000-0000-0000-000000000001/bitstreams"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "https://indiacode.gov.in/server/api/core/bundles/00000000-0000-0000-0000-000000000001/bitstreams": {
+      "_embedded": {
+        "bitstreams": [
+          {
+            "type": "bitstream",
+            "name": "act.pdf",
+            "_links": {
+              "content": {
+                "href": "https://indiacode.gov.in/server/api/core/bitstreams/00000000-0000-0000-0000-000000000001/content"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "https://indiacode.gov.in/server/api/discover/search?query=The+Biological+Diversity+Act%2C+2002&size=20&page=0": {
+      "_embedded": {
+        "searchResult": {
+          "_embedded": {
+            "objects": [
+              {
+                "_embedded": {
+                  "indexableObject": {
+                    "type": "item",
+                    "id": "00000000-0000-0000-0000-000000000002",
+                    "metadata": {
+                      "dc.title": [
+                        {
+                          "value": "The Biological Diversity Act, 2002"
+                        }
+                      ],
+                      "dc.description.actnumber": [
+                        {
+                          "value": "18"
+                        }
+                      ],
+                      "dc.date.issued": [
+                        {
+                          "value": "2003"
+                        }
+                      ],
+                      "dc.description.acttype": [
+                        {
+                          "value": "Central"
+                        }
+                      ]
+                    },
+                    "_links": {
+                      "self": {
+                        "href": "https://indiacode.gov.in/server/api/core/items/00000000-0000-0000-0000-000000000002"
+                      },
+                      "bundles": {
+                        "href": "https://indiacode.gov.in/server/api/core/items/00000000-0000-0000-0000-000000000002/bundles"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "page": {
+            "number": 0,
+            "totalPages": 1
+          }
+        }
+      }
+    },
+    "https://indiacode.gov.in/server/api/core/items/00000000-0000-0000-0000-000000000002": {
+      "type": "item",
+      "id": "00000000-0000-0000-0000-000000000002",
+      "metadata": {
+        "dc.title": [
+          {
+            "value": "The Biological Diversity Act, 2002"
+          }
+        ],
+        "dc.description.actnumber": [
+          {
+            "value": "18"
+          }
+        ],
+        "dc.date.issued": [
+          {
+            "value": "2003"
+          }
+        ],
+        "dc.description.acttype": [
+          {
+            "value": "Central"
+          }
+        ]
+      },
+      "_links": {
+        "self": {
+          "href": "https://indiacode.gov.in/server/api/core/items/00000000-0000-0000-0000-000000000002"
+        },
+        "bundles": {
+          "href": "https://indiacode.gov.in/server/api/core/items/00000000-0000-0000-0000-000000000002/bundles"
+        }
+      }
+    },
+    "https://indiacode.gov.in/server/api/core/items/00000000-0000-0000-0000-000000000002/bundles": {
+      "_embedded": {
+        "bundles": [
+          {
+            "type": "bundle",
+            "name": "ORIGINAL",
+            "_links": {
+              "bitstreams": {
+                "href": "https://indiacode.gov.in/server/api/core/bundles/00000000-0000-0000-0000-000000000002/bitstreams"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "https://indiacode.gov.in/server/api/core/bundles/00000000-0000-0000-0000-000000000002/bitstreams": {
+      "_embedded": {
+        "bitstreams": [
+          {
+            "type": "bitstream",
+            "name": "act.pdf",
+            "_links": {
+              "content": {
+                "href": "https://indiacode.gov.in/server/api/core/bitstreams/00000000-0000-0000-0000-000000000002/content"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "https://indiacode.gov.in/server/api/discover/search?query=The+Geographical+Indications+of+Goods+%28Registration+and+Protection%29+Act%2C+1999&size=20&page=0": {
+      "_embedded": {
+        "searchResult": {
+          "_embedded": {
+            "objects": [
+              {
+                "_embedded": {
+                  "indexableObject": {
+                    "type": "item",
+                    "id": "00000000-0000-0000-0000-000000000003",
+                    "metadata": {
+                      "dc.title": [
+                        {
+                          "value": "The Geographical Indications of Goods (Registration and Protection) Act, 1999"
+                        }
+                      ],
+                      "dc.description.actnumber": [
+                        {
+                          "value": "48"
+                        }
+                      ],
+                      "dc.date.issued": [
+                        {
+                          "value": "1999"
+                        }
+                      ],
+                      "dc.description.acttype": [
+                        {
+                          "value": "Central"
+                        }
+                      ]
+                    },
+                    "_links": {
+                      "self": {
+                        "href": "https://indiacode.gov.in/server/api/core/items/00000000-0000-0000-0000-000000000003"
+                      },
+                      "bundles": {
+                        "href": "https://indiacode.gov.in/server/api/core/items/00000000-0000-0000-0000-000000000003/bundles"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "page": {
+            "number": 0,
+            "totalPages": 1
+          }
+        }
+      }
+    },
+    "https://indiacode.gov.in/server/api/core/items/00000000-0000-0000-0000-000000000003": {
+      "type": "item",
+      "id": "00000000-0000-0000-0000-000000000003",
+      "metadata": {
+        "dc.title": [
+          {
+            "value": "The Geographical Indications of Goods (Registration and Protection) Act, 1999"
+          }
+        ],
+        "dc.description.actnumber": [
+          {
+            "value": "48"
+          }
+        ],
+        "dc.date.issued": [
+          {
+            "value": "1999"
+          }
+        ],
+        "dc.description.acttype": [
+          {
+            "value": "Central"
+          }
+        ]
+      },
+      "_links": {
+        "self": {
+          "href": "https://indiacode.gov.in/server/api/core/items/00000000-0000-0000-0000-000000000003"
+        },
+        "bundles": {
+          "href": "https://indiacode.gov.in/server/api/core/items/00000000-0000-0000-0000-000000000003/bundles"
+        }
+      }
+    },
+    "https://indiacode.gov.in/server/api/core/items/00000000-0000-0000-0000-000000000003/bundles": {
+      "_embedded": {
+        "bundles": [
+          {
+            "type": "bundle",
+            "name": "ORIGINAL",
+            "_links": {
+              "bitstreams": {
+                "href": "https://indiacode.gov.in/server/api/core/bundles/00000000-0000-0000-0000-000000000003/bitstreams"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "https://indiacode.gov.in/server/api/core/bundles/00000000-0000-0000-0000-000000000003/bitstreams": {
+      "_embedded": {
+        "bitstreams": [
+          {
+            "type": "bitstream",
+            "name": "act.pdf",
+            "_links": {
+              "content": {
+                "href": "https://indiacode.gov.in/server/api/core/bitstreams/00000000-0000-0000-0000-000000000003/content"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "https://indiacode.gov.in/server/api/discover/search?query=The+Drugs+and+Cosmetics+Act%2C+1940&size=20&page=0": {
+      "_embedded": {
+        "searchResult": {
+          "_embedded": {
+            "objects": [
+              {
+                "_embedded": {
+                  "indexableObject": {
+                    "type": "item",
+                    "id": "00000000-0000-0000-0000-000000000004",
+                    "metadata": {
+                      "dc.title": [
+                        {
+                          "value": "The Drugs and Cosmetics Act, 1940"
+                        }
+                      ],
+                      "dc.description.actnumber": [
+                        {
+                          "value": "23"
+                        }
+                      ],
+                      "dc.date.issued": [
+                        {
+                          "value": "1940"
+                        }
+                      ],
+                      "dc.description.acttype": [
+                        {
+                          "value": "Central"
+                        }
+                      ]
+                    },
+                    "_links": {
+                      "self": {
+                        "href": "https://indiacode.gov.in/server/api/core/items/00000000-0000-0000-0000-000000000004"
+                      },
+                      "bundles": {
+                        "href": "https://indiacode.gov.in/server/api/core/items/00000000-0000-0000-0000-000000000004/bundles"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "page": {
+            "number": 0,
+            "totalPages": 1
+          }
+        }
+      }
+    },
+    "https://indiacode.gov.in/server/api/core/items/00000000-0000-0000-0000-000000000004": {
+      "type": "item",
+      "id": "00000000-0000-0000-0000-000000000004",
+      "metadata": {
+        "dc.title": [
+          {
+            "value": "The Drugs and Cosmetics Act, 1940"
+          }
+        ],
+        "dc.description.actnumber": [
+          {
+            "value": "23"
+          }
+        ],
+        "dc.date.issued": [
+          {
+            "value": "1940"
+          }
+        ],
+        "dc.description.acttype": [
+          {
+            "value": "Central"
+          }
+        ]
+      },
+      "_links": {
+        "self": {
+          "href": "https://indiacode.gov.in/server/api/core/items/00000000-0000-0000-0000-000000000004"
+        },
+        "bundles": {
+          "href": "https://indiacode.gov.in/server/api/core/items/00000000-0000-0000-0000-000000000004/bundles"
+        }
+      }
+    },
+    "https://indiacode.gov.in/server/api/core/items/00000000-0000-0000-0000-000000000004/bundles": {
+      "_embedded": {
+        "bundles": [
+          {
+            "type": "bundle",
+            "name": "ORIGINAL",
+            "_links": {
+              "bitstreams": {
+                "href": "https://indiacode.gov.in/server/api/core/bundles/00000000-0000-0000-0000-000000000004/bitstreams"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "https://indiacode.gov.in/server/api/core/bundles/00000000-0000-0000-0000-000000000004/bitstreams": {
+      "_embedded": {
+        "bitstreams": [
+          {
+            "type": "bitstream",
+            "name": "act.pdf",
+            "_links": {
+              "content": {
+                "href": "https://indiacode.gov.in/server/api/core/bitstreams/00000000-0000-0000-0000-000000000004/content"
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

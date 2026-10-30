@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "mode": "candidate_only",
+  "enabled": true,
+  "poll_seconds": 300,
+  "check_interval_seconds": 86400,
+  "discovery_interval_seconds": 604800,
+  "retry_interval_seconds": 3600,
+  "sources": {
+    "ipindia": {"enabled": true},
+    "indiacode": {"enabled": true},
+    "tkdl": {"enabled": true}
+  }
+}

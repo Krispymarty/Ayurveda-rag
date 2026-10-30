@@ -1,0 +1,51 @@
+# Local secrets and operator settings; the sanitized example is trackable.
+.env*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials*.json
+secrets*.json
+/config/source_policies.json
+
+# Python/tool caches and disposable test output.
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+.coverage*
+htmlcov/
+tests/.tmp/
+tests/tmp*/
+
+# Runtime corpora, captures, databases, models, observations and review decisions.
+# Only the two small, public model identity locks are eligible for tracking.
+/data/*
+!/data/model.lock.json
+!/data/reranker.lock.json
+/corpus/
+/reports/
+/section_output/
+/tkdl_corpus_final/
+*.sqlite
+*.sqlite3
+*.db
+*.db-wal
+*.db-shm
+*.log
+*.safetensors
+*.gguf
+*.pt
+*.pth
+*.bin
+
+# User-supplied originals and bulk exports at the workspace root.
+/*.pdf
+/*.docx
+/*.zip
+/*.jsonl
+/*.csv

@@ -1,0 +1,6 @@
+{
+  "bundle": "data/benchmarks/ipindia-reviewed-20261015-v1",
+  "manifest_sha256": "ba13f06f6786a413a2fd7960132392fd2de465207c51a9e9a629ba03ffbe58bc",
+  "scope": "ipindia_only",
+  "review_kind": "archived_factual_page_correction"
+}

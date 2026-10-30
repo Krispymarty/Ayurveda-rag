@@ -1,0 +1,655 @@
+{
+  "schema_version": 2,
+  "frozen": true,
+  "scope": "ipindia_only",
+  "frozen_at": "2026-10-14T20:03:43.656885+00:00",
+  "baseline_generation": "20261014T190100599320Z",
+  "original_label_sha256": "9afed742bf46d591521da67cdb43731d7372e7a28b61231f3af537d28732aa14",
+  "annotation_method": "Archive-selected before tuning; first ten labels copied verbatim; no search output used.",
+  "queries": [
+    {
+      "id": "ipindia-01",
+      "source": "ipindia",
+      "query": "Patents Act section 3 traditional knowledge invention exclusion",
+      "reviewed": true,
+      "review_note": "Archived passage and provision/page checked; legal status remains unknown.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-act-1970/section-3"
+          ],
+          "section": "3",
+          "contains": "traditional knowledge",
+          "raw_sha256": [
+            "994e82009cf40f4384254c525f85f11e96ca8bb1aa6ec2ee943c5fb02fd590b6"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ipindia-02",
+      "source": "ipindia",
+      "query": "Patents Act section 25 pre grant opposition",
+      "reviewed": true,
+      "review_note": "Archived passage and provision/page checked; legal status remains unknown.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-act-1970/section-25"
+          ],
+          "section": "25",
+          "contains": "any person",
+          "raw_sha256": [
+            "d2bad06c7512f3135075625ad570b95a5d418b1e58220ea51c8ed2644908d07a"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ipindia-03",
+      "source": "ipindia",
+      "query": "Patents Act section 10 complete specification",
+      "reviewed": true,
+      "review_note": "Archived passage and provision/page checked; legal status remains unknown.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-act-1970/section-10"
+          ],
+          "section": "10",
+          "contains": "Every specification",
+          "raw_sha256": [
+            "01bcccd2457754ddf3aae893a39b3c0d83a4bc34ed495183a21875c7795fc789"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ipindia-04",
+      "source": "ipindia",
+      "query": "Patents Act section 6 persons entitled to apply",
+      "reviewed": true,
+      "review_note": "Archived passage and provision/page checked; legal status remains unknown.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-act-1970/section-6"
+          ],
+          "section": "6",
+          "contains": "Subject to",
+          "raw_sha256": [
+            "434bdd6924cf76a3ff74c5e5d82e9263edb0fd9d71011e6669bedfa89ae81449"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ipindia-05",
+      "source": "ipindia",
+      "query": "Patents Act section 2 invention definition",
+      "reviewed": true,
+      "review_note": "Archived passage and provision/page checked; legal status remains unknown.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-act-1970/section-2-5"
+          ],
+          "section": "2",
+          "contains": "new product or process",
+          "raw_sha256": [
+            "98387be6aa22ac9aa7b5b655bb9bd9e17d69e032a0360ef196ad5cfdf5927336"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ipindia-06",
+      "source": "ipindia",
+      "query": "Patent Rules 2003 rule 15",
+      "reviewed": true,
+      "review_note": "Archived passage and provision/page checked; legal status remains unknown.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-rules-2003/rule-15"
+          ],
+          "rule": "15",
+          "contains": "Drawings",
+          "raw_sha256": [
+            "5fbaa2398db0340120f228412c8e6cf9d9d0535c1bf0b7a101c6cd5636a023bf"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ipindia-07",
+      "source": "ipindia",
+      "query": "Patent Rules 2003 rule 103A",
+      "reviewed": true,
+      "review_note": "Archived passage and provision/page checked; legal status remains unknown.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-rules-2003/rule-103a"
+          ],
+          "rule": "103A",
+          "contains": "scientific advisers",
+          "raw_sha256": [
+            "9e514d122c95db3da099dc91936bc00e33846829c07082cb57fc81717d196cc8"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ipindia-08",
+      "source": "ipindia",
+      "query": "Trade Marks Act 1999 registration",
+      "reviewed": true,
+      "review_note": "Archived passage and provision/page checked; legal status remains unknown.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/frontend/pdf/trade-mark/act/1_43_1_trade-marks-act.pdf"
+          ],
+          "page": 11,
+          "contains": "Any person claiming",
+          "raw_sha256": [
+            "07aa58f3262a4d764c087577b2d49c7de0f4f49a392818aa9bc38c0dba620f1f"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ipindia-09",
+      "source": "ipindia",
+      "query": "Trade Marks Rules 2017 application",
+      "reviewed": true,
+      "review_note": "Archived passage and provision/page checked; legal status remains unknown.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/frontend/pdf/trade-mark/act/1_69_1_Trade_Marks_Rules_2017.pdf"
+          ],
+          "rule": "23",
+          "page": 59,
+          "contains": "TM-A",
+          "raw_sha256": [
+            "b858aa6874a4373be03b1ee3a7a926f9f7b79dc7a15dbffdc2109cf6c3a33e92"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ipindia-10",
+      "source": "ipindia",
+      "query": "Designs Act 2000 registration",
+      "reviewed": true,
+      "review_note": "Archived passage and provision/page checked; legal status remains unknown.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/frontend/pdf/design/1_58_1_design_act_1_.pdf"
+          ],
+          "page": 2,
+          "contains": "prescribed fee",
+          "raw_sha256": [
+            "e392e657bba992c763a4442d5cfe2d3ca089682590ae5bfa35a35c0381adc79f"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ipindia-11",
+      "source": "ipindia",
+      "query": "Patents Act section 48 exclusive rights of patentees",
+      "reviewed": true,
+      "reviewer": "Codex archive passage inspection",
+      "review_note": "Selected from archived original passage before ranking changes; no legal-status conclusion.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-act-1970/section-48"
+          ],
+          "contains": "exclusive right",
+          "raw_sha256": [
+            "804e82631fa1cae72c3a08d0f70f5ad3957fb3ec004c9927f76a55fd00a80152"
+          ],
+          "section": "48"
+        }
+      ]
+    },
+    {
+      "id": "ipindia-12",
+      "source": "ipindia",
+      "query": "Patents Act section 53 term of patent",
+      "reviewed": true,
+      "reviewer": "Codex archive passage inspection",
+      "review_note": "Selected from archived original passage before ranking changes; no legal-status conclusion.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-act-1970/section-53"
+          ],
+          "contains": "twenty years",
+          "raw_sha256": [
+            "40f3259b567545e012c1db93a18074b05cd67dc317da04cad3e632b255e52c24"
+          ],
+          "section": "53"
+        }
+      ]
+    },
+    {
+      "id": "ipindia-13",
+      "source": "ipindia",
+      "query": "Patents Act section 64 revocation of patents",
+      "reviewed": true,
+      "reviewer": "Codex archive passage inspection",
+      "review_note": "Selected from archived original passage before ranking changes; no legal-status conclusion.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-act-1970/section-64"
+          ],
+          "contains": "may be revoked",
+          "raw_sha256": [
+            "39c90063f2e7669399eb21f5730f03fbe2ae1fdb94bb1efc732272d9223d8bff"
+          ],
+          "section": "64"
+        }
+      ]
+    },
+    {
+      "id": "ipindia-14",
+      "source": "ipindia",
+      "query": "Patents Act section 57 amendment of specification",
+      "reviewed": true,
+      "reviewer": "Codex archive passage inspection",
+      "review_note": "Selected from archived original passage before ranking changes; no legal-status conclusion.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-act-1970/section-57"
+          ],
+          "contains": "amend",
+          "raw_sha256": [
+            "e5bc5d930e9023d7d7629ab17e1832adc5bff56c4d5204a123edffc3d12a87ee"
+          ],
+          "section": "57"
+        }
+      ]
+    },
+    {
+      "id": "ipindia-15",
+      "source": "ipindia",
+      "query": "Patents Act section 39 filing outside India resident",
+      "reviewed": true,
+      "reviewer": "Codex archive passage inspection",
+      "review_note": "Selected from archived original passage before ranking changes; no legal-status conclusion.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-act-1970/section-39"
+          ],
+          "contains": "resident in India",
+          "raw_sha256": [
+            "6554ff2592dffbdb63b4fd6204ea9ee102906fa9fb1e096eb5c038d1488d9127"
+          ],
+          "section": "39"
+        }
+      ]
+    },
+    {
+      "id": "ipindia-16",
+      "source": "ipindia",
+      "query": "Patents Act section 60 restoration of lapsed patent",
+      "reviewed": true,
+      "reviewer": "Codex archive passage inspection",
+      "review_note": "Selected from archived original passage before ranking changes; no legal-status conclusion.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-act-1970/section-60"
+          ],
+          "contains": "ceased to have effect",
+          "raw_sha256": [
+            "8e2e21f91c3224ab5897d68e4f8de3c95df92defae280c29e433217e3d5eb7f8"
+          ],
+          "section": "60"
+        }
+      ]
+    },
+    {
+      "id": "ipindia-17",
+      "source": "ipindia",
+      "query": "Patents Act section 66 revocation public interest",
+      "reviewed": true,
+      "reviewer": "Codex archive passage inspection",
+      "review_note": "Selected from archived original passage before ranking changes; no legal-status conclusion.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-act-1970/section-66"
+          ],
+          "contains": "mischievous",
+          "raw_sha256": [
+            "b81cd8b98ca84b6c78eda8ca0338671a6007848481ff23f7f7951b13960dcb48"
+          ],
+          "section": "66"
+        }
+      ]
+    },
+    {
+      "id": "ipindia-18",
+      "source": "ipindia",
+      "query": "Patents Act section 72 register inspection",
+      "reviewed": true,
+      "reviewer": "Codex archive passage inspection",
+      "review_note": "Selected from archived original passage before ranking changes; no legal-status conclusion.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-act-1970/section-72"
+          ],
+          "contains": "open to inspection",
+          "raw_sha256": [
+            "38d96158437032beede43d189b08c118680033d8d774ecc497149334b2301822"
+          ],
+          "section": "72"
+        }
+      ]
+    },
+    {
+      "id": "ipindia-19",
+      "source": "ipindia",
+      "query": "Patents Act exclusive rights of a patentee",
+      "reviewed": true,
+      "reviewer": "Codex archive passage inspection",
+      "review_note": "Selected from archived original passage before ranking changes; no legal-status conclusion.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-act-1970/section-48"
+          ],
+          "contains": "exclusive right",
+          "raw_sha256": [
+            "804e82631fa1cae72c3a08d0f70f5ad3957fb3ec004c9927f76a55fd00a80152"
+          ],
+          "section": "48"
+        }
+      ]
+    },
+    {
+      "id": "ipindia-20",
+      "source": "ipindia",
+      "query": "Patents Act duration and term of patent",
+      "reviewed": true,
+      "reviewer": "Codex archive passage inspection",
+      "review_note": "Selected from archived original passage before ranking changes; no legal-status conclusion.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-act-1970/section-53"
+          ],
+          "contains": "twenty years",
+          "raw_sha256": [
+            "40f3259b567545e012c1db93a18074b05cd67dc317da04cad3e632b255e52c24"
+          ],
+          "section": "53"
+        }
+      ]
+    },
+    {
+      "id": "ipindia-21",
+      "source": "ipindia",
+      "query": "Patent Rules rule 80 renewal fees",
+      "reviewed": true,
+      "reviewer": "Codex archive passage inspection",
+      "review_note": "Selected from archived original passage before ranking changes; no legal-status conclusion.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-rules-2003/rule-80"
+          ],
+          "contains": "expiration of the second year",
+          "raw_sha256": [
+            "c8cb47272ab972f32442ccc554064ea13e9290943a774ae3b71d66472e0bb312"
+          ],
+          "rule": "80"
+        }
+      ]
+    },
+    {
+      "id": "ipindia-22",
+      "source": "ipindia",
+      "query": "Patent Rules rule 71 permission to apply outside India",
+      "reviewed": true,
+      "reviewer": "Codex archive passage inspection",
+      "review_note": "Selected from archived original passage before ranking changes; no legal-status conclusion.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-rules-2003/rule-71"
+          ],
+          "contains": "Form 25",
+          "raw_sha256": [
+            "0d52e7ab32dd6ba99fc8ebf6a5b2bf88250e37596816815a8560b05489799f1c"
+          ],
+          "rule": "71"
+        }
+      ]
+    },
+    {
+      "id": "ipindia-23",
+      "source": "ipindia",
+      "query": "Patent Rules publication of application eighteen months",
+      "reviewed": true,
+      "reviewer": "Codex archive passage inspection",
+      "review_note": "Selected from archived original passage before ranking changes; no legal-status conclusion.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-rules-2003/rule-24"
+          ],
+          "contains": "eighteen months",
+          "raw_sha256": [
+            "7581e23633768a2bcab1b9c27e131e92d0ecd33ebdaa20ba6dfdcde63594d357"
+          ],
+          "rule": "24"
+        }
+      ]
+    },
+    {
+      "id": "ipindia-24",
+      "source": "ipindia",
+      "query": "Patent Rules rule 90 registration of title and interest",
+      "reviewed": true,
+      "reviewer": "Codex archive passage inspection",
+      "review_note": "Selected from archived original passage before ranking changes; no legal-status conclusion.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-rules-2003/rule-90"
+          ],
+          "contains": "Form 16",
+          "raw_sha256": [
+            "2d41a34d0726d4b82f40504954ff463abc948995dc5ffb2b8e2523c0a876b04e"
+          ],
+          "rule": "90"
+        }
+      ]
+    },
+    {
+      "id": "ipindia-25",
+      "source": "ipindia",
+      "query": "Patent Rules rule 16 models and samples",
+      "reviewed": true,
+      "reviewer": "Codex archive passage inspection",
+      "review_note": "Selected from archived original passage before ranking changes; no legal-status conclusion.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-rules-2003/rule-16"
+          ],
+          "contains": "Models or samples",
+          "raw_sha256": [
+            "8b9114af61657ac0afa1af0656d216a34df37ec14a5a014265901ff4ec14a4c4"
+          ],
+          "rule": "16"
+        }
+      ]
+    },
+    {
+      "id": "ipindia-26",
+      "source": "ipindia",
+      "query": "Patents Rules 2003 drawngs rule 15",
+      "reviewed": true,
+      "reviewer": "Codex archive passage inspection",
+      "review_note": "Selected from archived original passage before ranking changes; no legal-status conclusion.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-rules-2003/rule-15"
+          ],
+          "contains": "Drawings",
+          "raw_sha256": [
+            "5fbaa2398db0340120f228412c8e6cf9d9d0535c1bf0b7a101c6cd5636a023bf"
+          ],
+          "rule": "15"
+        }
+      ]
+    },
+    {
+      "id": "ipindia-27",
+      "source": "ipindia",
+      "query": "Tradmark Rules 2017 rule 23 application form",
+      "reviewed": true,
+      "reviewer": "Codex archive passage inspection",
+      "review_note": "Selected from archived original passage before ranking changes; no legal-status conclusion.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/frontend/pdf/trade-mark/act/1_69_1_Trade_Marks_Rules_2017.pdf"
+          ],
+          "contains": "TM-A",
+          "raw_sha256": [
+            "b858aa6874a4373be03b1ee3a7a926f9f7b79dc7a15dbffdc2109cf6c3a33e92"
+          ],
+          "rule": "23",
+          "page": 59
+        }
+      ]
+    },
+    {
+      "id": "ipindia-28",
+      "source": "ipindia",
+      "query": "Designs Act section 5 registration prescribed fee",
+      "reviewed": true,
+      "reviewer": "Codex archive passage inspection",
+      "review_note": "Selected from archived original passage before ranking changes; no legal-status conclusion.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/frontend/pdf/design/1_58_1_design_act_1_.pdf"
+          ],
+          "contains": "prescribed fee",
+          "raw_sha256": [
+            "e392e657bba992c763a4442d5cfe2d3ca089682590ae5bfa35a35c0381adc79f"
+          ],
+          "page": 2
+        }
+      ]
+    },
+    {
+      "id": "ipindia-29",
+      "source": "ipindia",
+      "query": "Patents Act sections 48 and 53 rights and term",
+      "reviewed": true,
+      "reviewer": "Codex archive passage inspection",
+      "review_note": "Selected from archived original passage before ranking changes; no legal-status conclusion.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-act-1970/section-48"
+          ],
+          "contains": "exclusive right",
+          "raw_sha256": [
+            "804e82631fa1cae72c3a08d0f70f5ad3957fb3ec004c9927f76a55fd00a80152"
+          ],
+          "section": "48"
+        },
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-act-1970/section-53"
+          ],
+          "contains": "twenty years",
+          "raw_sha256": [
+            "40f3259b567545e012c1db93a18074b05cd67dc317da04cad3e632b255e52c24"
+          ],
+          "section": "53"
+        }
+      ]
+    },
+    {
+      "id": "ipindia-30",
+      "source": "ipindia",
+      "query": "Patent Rules rules 15 and 16 drawings and models",
+      "reviewed": true,
+      "reviewer": "Codex archive passage inspection",
+      "review_note": "Selected from archived original passage before ranking changes; no legal-status conclusion.",
+      "targets": [
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-rules-2003/rule-15"
+          ],
+          "contains": "Drawings",
+          "raw_sha256": [
+            "5fbaa2398db0340120f228412c8e6cf9d9d0535c1bf0b7a101c6cd5636a023bf"
+          ],
+          "rule": "15"
+        },
+        {
+          "source": "ipindia",
+          "urls": [
+            "https://ipindia.gov.in/acts/patent-rules-2003/rule-16"
+          ],
+          "contains": "Models or samples",
+          "raw_sha256": [
+            "8b9114af61657ac0afa1af0656d216a34df37ec14a5a014265901ff4ec14a4c4"
+          ],
+          "rule": "16"
+        }
+      ]
+    }
+  ]
+}
