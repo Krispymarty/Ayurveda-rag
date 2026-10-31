@@ -22,6 +22,8 @@ OFFICIAL_HOSTS = {
     "indiacode": {"indiacode.gov.in", "www.indiacode.gov.in", "indiacode.nic.in", "www.indiacode.nic.in", "upload.indiacode.nic.in"},
     "tkdl": {"tkdl.res.in", "www.tkdl.res.in"},
     "ipindia": {"ipindia.gov.in", "www.ipindia.gov.in", "ipindia.nic.in", "www.ipindia.nic.in"},
+    "nba": {"nbaindia.nic.in", "www.nbaindia.nic.in"},
+    "gazette": {"egazette.gov.in", "www.egazette.gov.in"},
 }
 SOURCE_URL = re.compile(r"(?:_Source:|# Source:)\s*(https?://[^\s<>]+)")
 SHORT_NAV = {"image.md", "image1.md", "gallery-viewer.md", "gallery-viewer-aloe.md"}

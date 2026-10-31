@@ -3,6 +3,7 @@
 Export: python -m tools.milestone3.review export
 Import: python -m tools.milestone3.review import --file path/to/decisions.jsonl
 Status: python -m tools.milestone3.review status
+Priority status/import: append --packet data/next_milestone/review/six-case-priority
 No command creates a human judgment or silently changes benchmark labels.
 """
 import argparse
@@ -17,6 +18,7 @@ import re
 
 from bs4 import BeautifulSoup
 
+from ipindia_corpus.grounded_answers import _unique_object
 from ipindia_corpus.indexer import generation
 from ipindia_corpus.llm_experiment import ROOT, canonical, timestamp
 from ipindia_corpus.locking import file_lock
@@ -28,6 +30,125 @@ JUDGMENTS = {"REQUIRED", "ACCEPTABLE_ALTERNATIVE", "SUPPORTED_BUT_REDUNDANT", "I
              "UNSUPPORTED_BY_SOURCE", "INCORRECT_LEGAL_INTERPRETATION", "INSUFFICIENT_INFORMATION",
              "NEEDS_QUALIFIED_LEGAL_REVIEW"}
 DIMENSIONS = {"passage_relevance", "proposition_support"}
+PRIORITY_CASES = ("traditional_ashwagandha_extract", "new_formulation", "novel_process",
+                  "abs_request", "hindi_intake", "unclear_description")
+PRIORITY_SOURCE = Path("reports/product_mvp/relevance_review/run-dc7ecb60")
+UNRESOLVED = {"INSUFFICIENT_INFORMATION", "NEEDS_QUALIFIED_LEGAL_REVIEW"}
+
+
+def _pretty(value):
+    # The frozen Passport packets use these exact bytes, not canonical().
+    return (json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode("utf-8")
+
+
+def _json(raw):
+    return json.loads(raw, object_pairs_hook=_unique_object)
+
+
+def _packet_payloads(directory, manifest, expected):
+    files = manifest.get("files")
+    if not isinstance(files, dict) or set(files) != set(expected):
+        raise ValueError("priority_packet_files_mismatch")
+    payloads = {}
+    for name, digest in files.items():
+        path = (directory / name).resolve()
+        if not path.is_relative_to(directory.resolve()):
+            raise ValueError("priority_packet_path_escape")
+        raw = path.read_bytes()
+        if sha(raw) != digest:
+            raise ValueError("priority_packet_hash_mismatch")
+        payloads[name] = raw
+    return payloads
+
+
+def _priority_context(root, packet):
+    """Adapt the sealed six-case preparation packet; never regenerate it."""
+    root = Path(root).resolve()
+    directory = (root / packet).resolve()
+    if not directory.is_relative_to(root):
+        raise ValueError("priority_packet_outside_workspace")
+    manifest_raw = (directory / "manifest.json").read_bytes()
+    manifest = _json(manifest_raw)
+    packet_id = manifest.get("packet_id")
+    if (manifest.get("schema_version") != "passport-priority-review-v1"
+            or manifest.get("ordered_case_ids") != list(PRIORITY_CASES)
+            or manifest.get("case_count") != 6 or manifest.get("review_unit_count") != 31
+            or manifest.get("human_reviews_completed") != 0
+            or packet_id != sha(_pretty({k: v for k, v in manifest.items() if k != "packet_id"}))):
+        raise ValueError("priority_packet_manifest_mismatch")
+    case_names = {f"cases/{qid}.json" for qid in PRIORITY_CASES}
+    payloads = _packet_payloads(directory, manifest, case_names | {"review_queue.jsonl", "instructions.md"})
+    source = (root / PRIORITY_SOURCE).resolve()
+    if not source.is_relative_to(root):
+        raise ValueError("priority_source_path_escape")
+    source_raw = (source / "manifest.json").read_bytes()
+    if sha(source_raw) != manifest.get("source_packet_manifest_sha256"):
+        raise ValueError("priority_original_packet_manifest_mismatch")
+    original = _json(source_raw)
+    original_payloads = _packet_payloads(source, original, {"selected_run.json", "review_queue.jsonl", "instructions.md"})
+    if original["files"] != manifest.get("source_packet_payload_sha256"):
+        raise ValueError("priority_original_packet_binding_mismatch")
+    report_raw = (root / "reports/product_mvp/verified_demo_cases.json").read_bytes()
+    if sha(report_raw) != manifest.get("source_report_sha256") or sha(report_raw) != original.get("input_report_sha256"):
+        raise ValueError("priority_source_report_hash_mismatch")
+    runs = [run for run in _json(report_raw)["runs"] if run.get("run_id") == manifest.get("selected_run_id")]
+    if (len(runs) != 1 or runs[0].get("synthetic") is not True or original_payloads["selected_run.json"] != _pretty(runs[0])
+            or original.get("selected_run_id") != manifest.get("selected_run_id")
+            or runs[0].get("scenario_file_sha256") != manifest.get("scenario_file_sha256")):
+        raise ValueError("priority_source_run_binding_mismatch")
+    originals = [_json(line) for line in original_payloads["review_queue.jsonl"].splitlines() if line.strip()]
+    source_rows = {row["review_id"]: row for row in originals}
+    if len(source_rows) != len(originals) or len(originals) != 50:
+        raise ValueError("priority_original_queue_mismatch")
+    rows = [_json(line) for line in payloads["review_queue.jsonl"].splitlines() if line.strip()]
+    ids = [row.get("review_id") for row in rows]
+    if len(rows) != 31 or len(set(ids)) != 31 or ids != manifest.get("preserved_review_ids"):
+        raise ValueError("priority_review_ids_mismatch")
+    cases = {case["case_id"]: case for case in runs[0]["case_results"]}
+    contexts = {}
+    for qid in PRIORITY_CASES:
+        case = _json(payloads[f"cases/{qid}.json"])
+        source_case = cases.get(qid, {})
+        response = source_case.get("response", {})
+        if (case.get("case_id") != qid or case.get("run_id") != manifest["selected_run_id"]
+                or case.get("intake") != source_case.get("intake") or case.get("issues") != response.get("issues")
+                or case.get("selected_quotations_and_citations") != response.get("verified_evidence")
+                or case.get("generation_id") != response.get("generation_id")
+                or case.get("unanswered_questions") != response.get("unresolved_questions")
+                or case.get("historical_model_presented_context", {}).get("available") is not False
+                or case.get("review_ids") != [row["review_id"] for row in rows if row["case_id"] == qid]):
+            raise ValueError("priority_case_binding_mismatch")
+        contexts[qid] = case
+    queue, texts = {}, {}
+    for row in rows:
+        rid = row["review_id"]
+        if (row != source_rows.get(rid) or rid != sha(_pretty({k: v for k, v in row.items() if k != "review_id"}))
+                or row.get("review_status") != "pending" or any(row.get(k) is not None for k in ("decision", "reviewer", "rationale"))
+                or row.get("case_id") not in contexts or row.get("packet_id") != original.get("packet_id")):
+            raise ValueError("priority_original_review_identity_mismatch")
+        evidence = row.get("evidence")
+        if not isinstance(evidence, dict):
+            raise ValueError("priority_citation_evidence_missing")
+        context = contexts[row["case_id"]]
+        matches = [c for c in context["archive_contexts"] if c.get("evidence_id") == evidence["evidence_id"]]
+        if len(matches) != 1:
+            raise ValueError("priority_citation_context_mismatch")
+        chunk = matches[0]["archived_chunk"]
+        if (chunk.get("chunk_id") != evidence["chunk_id"] or chunk.get("document_id") != evidence["document_id"]
+                or chunk.get("raw_sha256") != evidence["raw_sha256"] or chunk.get("source_url") != evidence["official_url"]
+                or evidence["exact_quote"] not in chunk["text"]):
+            raise ValueError("priority_citation_binding_mismatch")
+        passages = [chunk, *matches[0].get("adjacent_chunks", [])]
+        for passage in passages:
+            if (passage.get("document_id") != evidence["document_id"] or passage.get("raw_sha256") != evidence["raw_sha256"]
+                    or sha(passage["text"].encode("utf-8")) != passage.get("content_hash")):
+                raise ValueError("priority_displayed_passage_mismatch")
+        texts[rid] = [p["text"] for p in passages]
+        queue[rid] = {"question_id": row["case_id"], "citation_id": rid, "source_hash": evidence["raw_sha256"],
+                      "packet_sha256": manifest["files"][f"cases/{row['case_id']}.json"]}
+    return {"queue": queue, "texts": texts, "packet_id": packet_id, "manifest_sha256": sha(manifest_raw),
+            "directory": root / "data/next_stage/reviews" / packet_id,
+            "distinct_case_citations": len({(r["case_id"], r["evidence"]["document_id"], r["evidence"]["chunk_id"], r["evidence"]["exact_quote"]) for r in rows})}
 
 
 def norm(text):
@@ -251,9 +372,10 @@ def validate(decision, queued):
         raise ValueError("adjudication_must_resolve_record_hashes")
 
 
-def records(root=ROOT):
+def records(root=ROOT, *, directory=None):
     result = []
-    for path in sorted((Path(root) / DATA / "judgments").glob("*.json")):
+    base = Path(root) / DATA if directory is None else Path(directory)
+    for path in sorted((base / "judgments").glob("*.json")):
         raw = path.read_bytes()
         if sha(raw) != path.stem:
             raise ValueError("review_record_mutated")
@@ -261,7 +383,104 @@ def records(root=ROOT):
     return result
 
 
-def import_decisions(path, root=ROOT):
+def _validate_adjudication(decision, existing):
+    if decision["adjudication_status"] != "adjudicated":
+        return
+    refs = decision["resolves"]
+    if not isinstance(refs, list) or any(not isinstance(key, str) for key in refs):
+        raise ValueError("adjudication_records_mismatch")
+    resolved = [existing.get(key) for key in refs]
+    if len(set(refs)) < 2 or any(not r or any(r[k] != decision[k] for k in ("question_id", "citation_id", "dimension")) for r in resolved):
+        raise ValueError("adjudication_records_mismatch")
+    if any(r["reviewer"].strip().casefold() == decision["reviewer"].strip().casefold() for r in resolved):
+        raise ValueError("independent_adjudicator_required")
+
+
+def _validate_priority(decision, context):
+    if not isinstance(decision, dict) or not isinstance(decision.get("citation_id"), str):
+        raise ValueError("invalid_review_record")
+    queued = context["queue"].get(decision["citation_id"])
+    if queued is None:
+        raise ValueError("unknown_review_citation")
+    if (decision.get("priority_packet_id") != context["packet_id"]
+            or decision.get("priority_manifest_sha256") != context["manifest_sha256"]):
+        raise ValueError("priority_decision_binding_mismatch")
+    try:
+        validate(decision, queued)
+    except (AttributeError, TypeError) as exc:
+        raise ValueError("invalid_review_field_types") from exc
+    if decision["dimension"] == "proposition_support" and decision["judgment"] not in UNRESOLVED:
+        raise ValueError("proposition_support_not_assessable_missing_proposition")
+    if not any(decision["supporting_quote"] in text for text in context["texts"][decision["citation_id"]]):
+        raise ValueError("supporting_quote_not_in_reviewed_passage")
+
+
+def _review_aggregate(decisions):
+    groups = defaultdict(list)
+    for key, decision in decisions:
+        groups[(decision["citation_id"], decision["dimension"])].append((key, decision))
+    conflicts, completed, counts = [], set(), defaultdict(int)
+    for (cid, dimension), items in groups.items():
+        resolved = {key for _, d in items if d["adjudication_status"] == "adjudicated" for key in d["resolves"]}
+        active = [(key, d) for key, d in items if key not in resolved]
+        judgments = {d["judgment"] for _, d in active}
+        if len(judgments) != 1:
+            conflicts.append({"citation_id": cid, "dimension": dimension, "records": [key for key, _ in active]})
+        elif judgments.isdisjoint(UNRESOLVED):
+            completed.add((cid, dimension))
+            counts[dimension + ":" + next(iter(judgments))] += 1
+    return conflicts, completed, dict(counts)
+
+
+def _priority_status(context, root):
+    decisions = records(root, directory=context["directory"])
+    existing = dict(decisions)
+    for _, decision in decisions:
+        _validate_priority(decision, context)
+        _validate_adjudication(decision, existing)
+    conflicts, completed, counts = _review_aggregate(decisions)
+    return {"schema_version": "passport-priority-human-review-status-v1", "at": timestamp(),
+        "priority_packet_id": context["packet_id"], "priority_manifest_sha256": context["manifest_sha256"],
+        "question_count": len({q["question_id"] for q in context["queue"].values()}), "review_unit_count": len(context["queue"]),
+        "distinct_case_citations": context["distinct_case_citations"], "review_ids": list(context["queue"]),
+        "review_identity_fields": list(context["queue"].values()), "human_submitted_records": len(decisions),
+        "passage_relevance_completed_units": sum((rid, "passage_relevance") in completed for rid in context["queue"]),
+        "fully_reviewed_units_both_dimensions": 0, "judgment_counts_by_dimension": counts, "conflicts": conflicts,
+        "dimension_availability": {"passage_relevance": "assessable", "proposition_support": "not_assessable_missing_proposition"},
+        "historical_labels_modified": False, "certification_allowed": False,
+        "limitation": "Human attestations do not authenticate identity or expertise. Missing historical propositions cannot be reconstructed from research topics or quotations."}
+
+
+def _import_priority(path, root, packet):
+    context = _priority_context(root, packet)
+    directory = context["directory"]
+    if not directory.resolve().is_relative_to(Path(root).resolve()):
+        raise ValueError("priority_review_store_path_escape")
+    with file_lock(directory / "review-import.lock"):
+        context = _priority_context(root, packet)
+        raw_batch = Path(path).read_bytes()
+        decisions = [_json(line) for line in raw_batch.splitlines() if line.strip()]
+        if not decisions or len(decisions) > 5000:
+            raise ValueError("invalid_review_batch_size")
+        existing = dict(records(root, directory=directory))
+        # Check stored attestations/bindings as well as the whole incoming batch.
+        _priority_status(context, root)
+        for decision in decisions:
+            _validate_priority(decision, context)
+            _validate_adjudication(decision, existing)
+        # Recheck sealed evidence before persisting; never update the packet.
+        if _priority_context(root, packet)["manifest_sha256"] != context["manifest_sha256"]:
+            raise ValueError("priority_packet_changed_during_import")
+        immutable_write(directory / "review_batches" / (sha(raw_batch) + ".jsonl"), raw_batch)
+        for decision in decisions:
+            raw = canonical(decision)
+            immutable_write(directory / "judgments" / (sha(raw) + ".json"), raw)
+        return _priority_status(context, root)
+
+
+def import_decisions(path, root=ROOT, *, packet=None):
+    if packet is not None:
+        return _import_priority(path, Path(root), packet)
     root = Path(root)
     with file_lock(root / DATA / "review-import.lock"):
         queue = {q["citation_id"]: q for q in (json.loads(line) for line in (root / DEST / "evidence_review_queue.jsonl").read_text(encoding="utf-8").splitlines())}
@@ -281,12 +500,7 @@ def import_decisions(path, root=ROOT):
             texts += [p["original_source_excerpt"] or "" for p in packet["actual_passages"] + packet["expected_passages"]]
             if not any(decision["supporting_quote"] in text for text in texts):
                 raise ValueError("supporting_quote_not_in_packet")
-            if decision["adjudication_status"] == "adjudicated":
-                resolved = [existing.get(key) for key in decision["resolves"]]
-                if len(set(decision["resolves"])) < 2 or any(not r or any(r[k] != decision[k] for k in ("question_id", "citation_id", "dimension")) for r in resolved):
-                    raise ValueError("adjudication_records_mismatch")
-                if any(r["reviewer"] == decision["reviewer"] for r in resolved):
-                    raise ValueError("independent_adjudicator_required")
+            _validate_adjudication(decision, existing)
         # Validate the whole batch before persisting any decision.
         raw = Path(path).read_bytes()
         immutable_write(root / DATA / "review_batches" / (sha(raw) + ".jsonl"), raw)
@@ -296,23 +510,16 @@ def import_decisions(path, root=ROOT):
         return status(root)
 
 
-def status(root=ROOT):
+def status(root=ROOT, *, packet=None):
+    if packet is not None:
+        context = _priority_context(root, packet)
+        if not context["directory"].resolve().is_relative_to(Path(root).resolve()):
+            raise ValueError("priority_review_store_path_escape")
+        return _priority_status(context, root)
     root = Path(root)
     queue = [json.loads(line) for line in (root / DEST / "evidence_review_queue.jsonl").read_text(encoding="utf-8").splitlines() if line]
     decisions = records(root)
-    groups = defaultdict(list)
-    for key, decision in decisions:
-        groups[(decision["citation_id"], decision["dimension"])].append((key, decision))
-    conflicts, completed, counts = [], set(), defaultdict(int)
-    for (cid, dimension), items in groups.items():
-        resolved = {key for _, d in items if d["adjudication_status"] == "adjudicated" for key in d["resolves"]}
-        active = [(key, d) for key, d in items if key not in resolved]
-        judgments = {d["judgment"] for _, d in active}
-        if len(judgments) != 1:
-            conflicts.append({"citation_id": cid, "dimension": dimension, "records": [key for key, _ in active]})
-        elif judgments.isdisjoint({"INSUFFICIENT_INFORMATION", "NEEDS_QUALIFIED_LEGAL_REVIEW"}):
-            completed.add((cid, dimension))
-            counts[dimension + ":" + next(iter(judgments))] += 1
+    conflicts, completed, counts = _review_aggregate(decisions)
     full = sum(all((q["citation_id"], dim) in completed for dim in DIMENSIONS) for q in queue)
     result = {"at": timestamp(), "queued_question_count": len({q["question_id"] for q in queue}),
               "queued_question_citation_quotes": len(queue), "human_submitted_records": len(decisions),
@@ -366,14 +573,17 @@ No reviewed_gold_v3.jsonl is created until genuine benchmark review is completed
 """
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=("export", "import", "status"))
     parser.add_argument("--file", type=Path)
-    args = parser.parse_args()
+    parser.add_argument("--packet", type=Path, help="Sealed six-case Passport packet; import/status only")
+    args = parser.parse_args(argv)
     if args.command == "import" and not args.file:
         parser.error("--file required")
-    result = export() if args.command == "export" else import_decisions(args.file) if args.command == "import" else status()
+    if args.packet and args.command == "export":
+        parser.error("--packet cannot regenerate a sealed packet")
+    result = export() if args.command == "export" else import_decisions(args.file, packet=args.packet) if args.command == "import" else status(packet=args.packet)
     print(json.dumps(result, ensure_ascii=True))
 
 

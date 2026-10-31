@@ -41,7 +41,7 @@ def eligible_chunk_ids(evidence):
                 or not isinstance(hit.get("raw_sha256"), str)
                 or not re.fullmatch(r"[0-9a-f]{64}", hit["raw_sha256"])):
             continue
-        if hit.get("source") not in {"ipindia", "indiacode", "tkdl"} or not official_public_url(hit["source"], hit.get("source_url", "")):
+        if hit.get("source") not in {"ipindia", "indiacode", "tkdl", "nba", "gazette"} or not official_public_url(hit["source"], hit.get("source_url", "")):
             continue
         identifiers.append(identifier)
     return identifiers

@@ -72,5 +72,25 @@
     ],
     "archive_existing_candidates": true,
     "max_discovered": 70
+  },
+  "nba": {
+    "enabled": false,
+    "authority": "National Biodiversity Authority",
+    "evidence_role": "legal_source",
+    "seeds": [],
+    "manual_acquisition_only": true,
+    "max_discovered": 10,
+    "official_homepage": "https://nbaindia.nic.in/",
+    "scope": "Biological Diversity Act, amendments, rules, ABS regulations and procedural guidance; source status unknown"
+  },
+  "gazette": {
+    "enabled": false,
+    "authority": "Gazette of India / Department of Publication",
+    "evidence_role": "legal_source",
+    "seeds": [],
+    "manual_acquisition_only": true,
+    "max_discovered": 10,
+    "official_homepage": "https://egazette.gov.in/",
+    "scope": "Biological Diversity Act, amendments, rules, ABS regulations and procedural guidance; source status unknown"
   }
 }

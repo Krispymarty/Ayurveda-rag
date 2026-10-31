@@ -141,6 +141,7 @@ def answer(question, search_fn, verify_fn, *, provider=None, controlled_evidence
             return finish("insufficient_evidence")
         # Whole ranked chunks only, never partial text. Omitted candidates are
         # disclosed in diagnostics; explicit multi-provision requests must fit.
+        stage = time.monotonic()
         packed = []
         for hit in evidence:
             if len(canonical(compact_evidence(build_plan(packed + [hit])))) > 6500:
@@ -165,6 +166,7 @@ def answer(question, search_fn, verify_fn, *, provider=None, controlled_evidence
         plan = build_plan(evidence)
         if not plan["spans"]:
             return finish("insufficient_trusted_evidence")
+        result["timings_ms"]["packing"] = (time.monotonic() - stage) * 1000
         provider = provider or SpanProvider()
         stage = time.monotonic()
         result["model_calls_attempted"] += 1

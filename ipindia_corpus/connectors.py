@@ -26,6 +26,8 @@ DOCUMENT_LINK = {
     "ipindia": re.compile(r"/(?:acts/|storage/uploads/|resource/.*(?:acts|rules|guidelines|manuals))|\.pdf$", re.I),
     "indiacode": re.compile(r"/(?:bitstream/|showfile\b)|[?&]type=(?:rule|actfile)\b", re.I),
     "tkdl": re.compile(r"/tkdl/langdefault/(?:common/(?:Home|Abouttkdl|GenInfo|BioPiracy|Outcome|Milestone)[^/]*|Ayurveda/Ayu_(?:Principles|Drugs|Glossary|FAQ|Cosmetics))\.(?:asp|htm)$", re.I),
+    "nba": re.compile(r"\.pdf$", re.I),
+    "gazette": re.compile(r"\.pdf$", re.I),
 }
 
 

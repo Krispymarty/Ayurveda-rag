@@ -25,5 +25,25 @@
     "notes": "Unreviewed. Record verified access evidence before permitting capture.",
     "permitted_prefixes": [],
     "evidence": []
+  },
+  "nba": {
+    "enabled": false,
+    "approved": false,
+    "reviewer": "",
+    "reviewed_at": "",
+    "policy_url": "",
+    "notes": "Unreviewed. Isolated candidate work only; capture requires verified access evidence.",
+    "permitted_prefixes": [],
+    "evidence": []
+  },
+  "gazette": {
+    "enabled": false,
+    "approved": false,
+    "reviewer": "",
+    "reviewed_at": "",
+    "policy_url": "",
+    "notes": "Unreviewed. Isolated candidate work only; capture requires verified access evidence.",
+    "permitted_prefixes": [],
+    "evidence": []
   }
 }

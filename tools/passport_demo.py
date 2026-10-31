@@ -3,8 +3,8 @@
 Run from the repository with: python -m tools.passport_demo
 This is an opt-in live run, not a benchmark or a legal correctness evaluation.
 Only loopback HTTP is allowed. No retries, services, or external fetches occur.
-The sole report keeps previous runs, failures, exact input snapshots and raw
-responses. Importing this module does not run the demo or write anything.
+The default report retains previous runs. Explicit profiling uses a separate
+excluded artifact for synthetic inputs, failures and raw responses. Importing this module does not run the demo or write anything.
 """
 from __future__ import annotations
 
@@ -126,6 +126,7 @@ class LocalClient:
         self.opener = build_opener(
             ProxyHandler({}), HTTPCookieProcessor(CookieJar()), NoRedirect(),
         )
+        self.last_timing_header = None
 
     def request(self, route, payload=None, token=None):
         headers = {"Accept": "application/json", "Origin": self.origin}
@@ -138,6 +139,7 @@ class LocalClient:
         started = time.monotonic()
         try:
             with self.opener.open(request, timeout=self.timeout) as response:
+                self.last_timing_header = response.headers.get("Server-Timing")
                 raw = response.read(2_000_001)
                 status = response.status
         except HTTPError as exc:
@@ -378,20 +380,32 @@ def validate_result(body, case, verifier):
     }
 
 
-def persist(report):
-    REPORT.parent.mkdir(parents=True, exist_ok=True)
+def persist(report, path=REPORT):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
     # Write the one authorized report file only; no sidecars or alternate reports.
-    with REPORT.open("w", encoding="utf-8") as stream:
+    with path.open("w", encoding="utf-8") as stream:
         json.dump(report, stream, ensure_ascii=False, indent=2)
         stream.write("\n")
         stream.flush()
         os.fsync(stream.fileno())
 
 
-def run_demo(origin, timeout):
+def run_demo(origin, timeout, *, case_ids=None, passes=1, output=None, label="legacy", warmup=False):
     catalog, input_sha256 = load_scenarios()
-    if REPORT.exists():
-        report = json.loads(REPORT.read_text(encoding="utf-8-sig"))
+    known = {case["id"]: case for case in catalog["cases"]}
+    selected = list(known) if case_ids is None else case_ids
+    if not selected or len(set(selected)) != len(selected) or any(i not in known for i in selected):
+        raise ValueError("case IDs must be explicit unique catalog IDs")
+    if type(passes) is not int or not 1 <= passes <= 3:
+        raise ValueError("passes must be one to three")
+    if output is None and (case_ids is not None or passes != 1 or warmup or label != "legacy"):
+        raise ValueError("profiling requires a separate output artifact")
+    path = Path(output).resolve() if output else REPORT
+    if output and (not path.is_relative_to((ROOT / "data/next_stage").resolve()) or path.exists()):
+        raise ValueError("profile output must be a new file under data/next_stage")
+    if path.exists():
+        report = json.loads(path.read_text(encoding="utf-8-sig"))
         if not isinstance(report.get("runs"), list):
             raise ValueError("existing report has no runs array; refusing to erase it")
     else:
@@ -403,10 +417,17 @@ def run_demo(origin, timeout):
         "synthetic": True, "legal_relevance_review": "unreviewed", "notice": NOTICE,
         "scenario_file": str(SCENARIOS), "scenario_file_sha256": input_sha256,
         "preserved_input_set": catalog, "case_results": [],
+        "ordered_case_ids": selected, "passes": passes, "label": label,
+        "excluded_warmup": bool(warmup),
+        "code_sha256": {name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest() for name in (
+            "ipindia_corpus/passport/service.py", "ipindia_corpus/passport/api.py",
+            "ipindia_corpus/reliable_answers.py", "ipindia_corpus/request_policy.py", "ipindia_corpus/retrieval.py")},
     }
     report["runs"].append(run)
     # Freeze exact inputs before the very first live request.
-    persist(report)
+    def save():
+        persist(report, path)
+    save()
     client = LocalClient(origin, timeout)
     verifier = CitationVerifier(ROOT)
     session_error = None
@@ -421,24 +442,32 @@ def run_demo(origin, timeout):
         token = None
         run["session"] = {"error": session_error}
     try:
-        for case in catalog["cases"]:
+        attempts = ([(0, known[selected[0]])] if warmup else []) + [
+            (n, known[i]) for n in range(1, passes + 1) for i in selected]
+        previous_start = None
+        for pass_number, case in attempts:
+            if output and previous_start is not None:
+                # Respect the existing service bucket; waiting is outside HTTP timing.
+                time.sleep(max(0, 6.1 - (time.monotonic() - previous_start)))
             row = {"case_id": case["id"], "started_at": utc_now(),
+                   "pass": pass_number, "phase": "warmup" if pass_number == 0 else "measured",
                    "intake": case["intake"], "legal_relevance_review": "unreviewed",
                    "outcome": "in_progress", "attempted": session_error is None}
             run["case_results"].append(row)
-            persist(report)
+            save()
             if session_error:
                 row.update(outcome="session_unavailable", attempted=False,
                            error=session_error)
             else:
                 row["attempted"] = True
                 started = time.monotonic()
+                previous_start = started
                 try:
                     body, status, elapsed = client.request(
                         "/api/passport", case["intake"], token,
                     )
-                    row.update(response=body, http_status=status, elapsed_ms=elapsed)
-                    persist(report)
+                    row.update(response=body, http_status=status, elapsed_ms=elapsed, server_timing=client.last_timing_header)
+                    save()
                     try:
                         row["validation"] = validate_result(body, case, verifier)
                         row["outcome"] = row["validation"]["outcome"]
@@ -448,9 +477,13 @@ def run_demo(origin, timeout):
                 except RequestFailure as exc:
                     row.update(outcome=exc.details["kind"], error=exc.details,
                                elapsed_ms=round((time.monotonic() - started) * 1000, 2))
+                    try:
+                        row["response"] = json.loads(exc.details["response_text"])
+                    except (ValueError, KeyError):
+                        pass
             row["finished_at"] = utc_now()
-            persist(report)
-            print(f"{case['id']}: {row['outcome']}", flush=True)
+            save()
+            print(f"pass {pass_number} {case['id']}: {row['outcome']} ({row.get('elapsed_ms', 0):.1f} ms)", flush=True)
         run["status"] = "completed"
     except KeyboardInterrupt:
         run["status"] = "interrupted"
@@ -459,7 +492,7 @@ def run_demo(origin, timeout):
                 outcome="interrupted_before_response_recorded", finished_at=utc_now(),
             )
         run["not_attempted_case_ids"] = [
-            case["id"] for case in catalog["cases"][len(run["case_results"]):]
+            f"{n}:{case['id']}" for n, case in attempts[len(run["case_results"]):]
         ]
     finally:
         run["finished_at"] = utc_now()
@@ -467,8 +500,8 @@ def run_demo(origin, timeout):
             value: sum(row["outcome"] == value for row in run["case_results"])
             for value in sorted({row["outcome"] for row in run["case_results"]})
         }
-        persist(report)
-    print(f"Saved observations to {REPORT}", flush=True)
+        save()
+    print(f"Saved observations to {path}", flush=True)
     return run
 
 
@@ -477,15 +510,22 @@ def main():
     parser.add_argument("--base-url", default="http://127.0.0.1:8003")
     parser.add_argument("--timeout", type=float, default=300.0,
                         help="per-request timeout in seconds; no retries")
+    parser.add_argument("--case-ids", nargs="+")
+    parser.add_argument("--passes", type=int, default=1)
+    parser.add_argument("--output", type=Path)
+    parser.add_argument("--label", default="legacy")
+    parser.add_argument("--warmup", action="store_true")
     args = parser.parse_args()
     if not 0 < args.timeout <= 900:
         parser.error("--timeout must be greater than 0 and at most 900 seconds")
     origin = validate_origin(args.base_url)
-    run = run_demo(origin, args.timeout)
+    run = run_demo(origin, args.timeout, case_ids=args.case_ids, passes=args.passes,
+                   output=args.output, label=args.label, warmup=args.warmup)
+    measured = [row for row in run["case_results"] if row["phase"] == "measured"]
     return 0 if (
-        run["status"] == "completed" and len(run["case_results"]) == 12
+        run["status"] == "completed" and len(measured) == len(run["ordered_case_ids"]) * args.passes
         and all(row.get("validation", {}).get("structural_and_integrity_checks_passed")
-                for row in run["case_results"])
+                for row in measured)
     ) else 1
 
 

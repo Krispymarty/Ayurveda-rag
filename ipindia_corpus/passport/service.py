@@ -1,9 +1,11 @@
 """Bounded issue nomination plus existing verified archived-extract selection."""
 import json
+import hashlib
 import re
 import time
 from typing import Literal
 import unicodedata
+from concurrent.futures import ThreadPoolExecutor
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 import requests
@@ -89,9 +91,18 @@ class LocalSearch:
         return result
 
     def __call__(self, question, top_k=5):
+        return self._query(question, top_k, self.session)
+
+    def independent_query(self, question, top_k=5):
+        # requests.Session is not shared across the two preparation workers.
+        with requests.Session() as session:
+            session.trust_env = False
+            return self._query(question, top_k, session)
+
+    def _query(self, question, top_k, session):
         if top_k != 5:
             raise ValueError("fixed_issue_search_depth")
-        response = self.session.get("http://127.0.0.1:8000/search", params={"q": question, "top_k": 5, "source": "ipindia", "domain": "Patent"}, timeout=(3, 15), allow_redirects=False)
+        response = session.get("http://127.0.0.1:8000/search", params={"q": question, "top_k": 5, "source": "ipindia", "domain": "Patent"}, timeout=(3, 15), allow_redirects=False)
         if response.status_code != 200:
             raise ValueError("search_unavailable")
         return response.json()
@@ -109,15 +120,25 @@ class CountingProvider:
     def __init__(self, provider):
         self.provider = provider
         self.attempted = self.completed = 0
+        self.observations = []
         self.deadline = time.monotonic() + 90
 
     def chat(self, fields):
         if self.attempted >= 7 or time.monotonic() > self.deadline:
             raise ExperimentFailure("timeout")
         self.attempted += 1
-        result = self.provider.chat(fields)
-        self.completed += 1
-        return result
+        started = time.monotonic()
+        observation = {"request_sha256": hashlib.sha256(extracts.canonical(fields)).hexdigest(), "completed": False}
+        self.observations.append(observation)
+        try:
+            result = self.provider.chat(fields)
+            self.completed += 1
+            observation["completed"] = True
+            # Timing metadata is numeric/bool only; no question, source or output.
+            observation["provider_timing"] = {k: v for k, v in result[1].items() if type(v) in (int, float, bool)}
+            return result
+        finally:
+            observation["elapsed_ms"] = round((time.monotonic() - started) * 1000, 3)
 
 
 def intake_contexts(intake):
@@ -160,7 +181,10 @@ def parse_plan(raw, intake):
 
 
 class PassportEngine:
-    def __init__(self, search, verify, *, provider=None):
+    def __init__(self, search, verify, *, provider=None, prefetch=False):
+        if type(prefetch) is not bool:
+            raise ValueError("invalid_prefetch_configuration")
+        self.prefetch = prefetch
         self.search, self.verify = search, verify
         self.provider = provider or extracts.SpanProvider()
         self.gid = search.status()["generation_id"]
@@ -169,10 +193,23 @@ class PassportEngine:
         self.binding_failed = False
 
     @classmethod
-    def connect(cls, root=ROOT):
+    def connect(cls, root=ROOT, *, prefetch=False):
         search = LocalSearch()
         gid = search.status()["generation_id"]
-        return cls(search, PublishedVerifier(root, gid))
+        return cls(search, PublishedVerifier(root, gid), prefetch=prefetch)
+
+    def _prepare(self, issues):
+        fetch = getattr(self.search, "independent_query", self.search)
+        prepared = {}
+        with ThreadPoolExecutor(max_workers=2, thread_name_prefix="passport-search") as pool:
+            futures = [(issue["topic_id"], pool.submit(fetch, TOPICS[issue["topic_id"]][2], top_k=5)) for issue in issues]
+            for key, future in futures:
+                try:
+                    prepared[key] = future.result()
+                except Exception as exc:
+                    # Feed failures through the original per-issue failure path.
+                    prepared[key] = exc
+        return prepared
 
     def ready(self):
         if self.binding_failed:
@@ -195,7 +232,10 @@ class PassportEngine:
                                                       "Discuss invention-specific questions and any disclosure with a registered patent professional; keep confidential details out of this prototype."],
                   "overall_status": "informational_evidence_only", "legal_relevance_review": "unreviewed",
                   "generation_id": self.gid, "model": {"name": extracts.MODEL, "digest": extracts.DIGEST, "planner_version": VERSION},
-                  "request_policy_version": "passport-intake-scope-v2", "inherited_security_policy_version": REQUEST_POLICY_VERSION, "timings_ms": {}}
+                  "request_policy_version": "passport-intake-scope-v2", "inherited_security_policy_version": REQUEST_POLICY_VERSION, "timings_ms": {},
+                  "performance": {"configuration": {**extracts.configuration(), "planner_version": VERSION,
+                     "retrieval": "prefetch2-v1" if self.prefetch else "serial-v1", "topic_catalog_sha256": hashlib.sha256(extracts.canonical(TOPICS)).hexdigest()},
+                     "issues": [], "model_requests": provider.observations}}
 
         def finish(status):
             result["status"] = status
@@ -203,8 +243,11 @@ class PassportEngine:
             result["timings_ms"]["complete"] = round((time.monotonic() - started) * 1000, 2)
             return result
 
+        step = time.monotonic()
         content = unicodedata.normalize("NFKC", "\n".join([intake.description, intake.ingredients, intake.additional_context]))
-        if INJECTION.search(content) or UNSAFE.search(content) or MEDICAL.search(content) or LEGAL_STATUS.search(content):
+        blocked = INJECTION.search(content) or UNSAFE.search(content) or MEDICAL.search(content) or LEGAL_STATUS.search(content)
+        result["timings_ms"]["intake_policy"] = round((time.monotonic() - step) * 1000, 3)
+        if blocked:
             result["unresolved_questions"].insert(0, "This request asks for unsafe instructions, medical guidance or current-law determinations outside this research flow. Describe the invention without those instructions.")
             return finish("blocked")
         try:
@@ -224,6 +267,11 @@ class PassportEngine:
             result["unresolved_questions"].append("Whether and when the invention was publicly disclosed is unknown.")
         if not plan["issues"]:
             return finish("needs_clarification")
+        prepared = None
+        if self.prefetch:
+            step = time.monotonic()
+            prepared = self._prepare(plan["issues"])
+            result["timings_ms"]["prefetch"] = round((time.monotonic() - step) * 1000, 3)
         index, released_hits = {}, {}
         for hypothesis in plan["issues"]:
             key = hypothesis["topic_id"]
@@ -233,7 +281,14 @@ class PassportEngine:
             result["issues"].append(issue)
 
             def search(q, top_k=5):
-                response = self.search(q, top_k=top_k)
+                if prepared is not None:
+                    if q != question or top_k != 5:
+                        raise ValueError("fixed_issue_search_changed")
+                    response = prepared[key]
+                    if isinstance(response, Exception):
+                        raise response
+                else:
+                    response = self.search(q, top_k=top_k)
                 if response.get("generation_id") != self.gid or response.get("ranking_version") != "v2":
                     raise ValueError("protected_retrieval_binding_changed")
                 for h in response["hits"]:
@@ -243,6 +298,8 @@ class PassportEngine:
 
             step = time.monotonic()
             selected = extracts.answer(question, search, self.verify, provider=provider)
+            result["performance"]["issues"].append({"topic_id": key, "timings_ms": selected.get("timings_ms", {}),
+                       "model_calls_attempted": selected.get("model_calls_attempted", 0), "status": selected["status"]})
             result["timings_ms"][key] = round((time.monotonic() - step) * 1000, 2)
             if selected["status"] != "answered":
                 issue["evidence_status"] = "dependency_unavailable" if selected["status"] == "unavailable" else "selection_rejected" if selected.get("retrieval_evidence") else "not_found"
@@ -265,6 +322,7 @@ class PassportEngine:
                     if identifier not in issue["evidence_ids"]:
                         issue["evidence_ids"].append(identifier)
             issue["evidence_status"] = "source_verified"
+        step = time.monotonic()
         try:
             if not self.ready():
                 raise ValueError("active_generation_changed")
@@ -276,6 +334,8 @@ class PassportEngine:
                 issue.update(evidence_ids=[], evidence_status="dependency_unavailable")
             result["unresolved_questions"].insert(0, "The active search binding changed or became unavailable. No passport evidence was released.")
             return finish("unavailable")
+        finally:
+            result["timings_ms"]["final_passport_archive"] = round((time.monotonic() - step) * 1000, 3)
         if plan["needs_clarification"] or intake.novelty == "unsure":
             return finish("needs_clarification")
         return finish("ready" if all(i["evidence_status"] == "source_verified" for i in result["issues"]) else "partial")

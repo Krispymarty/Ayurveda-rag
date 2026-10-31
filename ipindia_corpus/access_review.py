@@ -17,7 +17,8 @@ from .paths import archive_path, immutable_write
 
 CONTACT = "https://github.com/Krispymarty/Ip-Shakti--Rag"
 HOMES = {"ipindia": "https://ipindia.gov.in/", "indiacode": "https://indiacode.gov.in/",
-         "tkdl": "https://www.tkdl.res.in/tkdl/langdefault/common/Home.asp?GL=Eng"}
+         "tkdl": "https://www.tkdl.res.in/tkdl/langdefault/common/Home.asp?GL=Eng",
+         "nba": "https://nbaindia.nic.in/", "gazette": "https://egazette.gov.in/"}
 
 
 def capture(root: Path, source: str, url: str, kind: str, session=None) -> dict:

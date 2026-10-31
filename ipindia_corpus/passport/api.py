@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import secrets
 import threading
+import time
 
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
@@ -96,7 +97,8 @@ class PrivateBoundary:
 def create_app(*, engine=None, enabled=None, readiness=None):
     if enabled is None:
         enabled = os.environ.get("AYURIP_PASSPORT_DEV") == "1"
-    state = readiness or EngineReadiness(engine=engine, factory=PassportEngine.connect)
+    prefetch = os.environ.get("AYURIP_PASSPORT_PREFETCH") == "1"
+    state = readiness or EngineReadiness(engine=engine, factory=lambda: PassportEngine.connect(prefetch=prefetch))
 
     @asynccontextmanager
     async def lifespan(app):
@@ -141,6 +143,7 @@ def create_app(*, engine=None, enabled=None, readiness=None):
 
     @app.post("/api/passport")
     async def build(request: Request):
+        intake_started = time.monotonic()
         try:
             raw = (await request.body()).decode("utf-8")
             data = json.loads(raw, object_pairs_hook=_unique_object)
@@ -150,7 +153,10 @@ def create_app(*, engine=None, enabled=None, readiness=None):
             intake = Intake.model_validate(data)
         except ValidationError as exc:
             return JSONResponse(status_code=422, content={"reason": "invalid_intake", "fields": sorted({e["loc"][0] for e in exc.errors() if e["loc"] and e["loc"][0] in Intake.model_fields})})
+        intake_ms = (time.monotonic() - intake_started) * 1000
+        ready_started = time.monotonic()
         active = await run_in_threadpool(state.available_engine)
+        ready_ms = (time.monotonic() - ready_started) * 1000
         if active is None:
             snapshot = await run_in_threadpool(state.snapshot)
             return JSONResponse(status_code=503, content={"reason": snapshot["reason"]})
@@ -159,7 +165,12 @@ def create_app(*, engine=None, enabled=None, readiness=None):
         except Exception:
             # No intake, model completion, archive text or exception details in logs/response.
             return JSONResponse(status_code=503, content={"reason": "passport_unavailable"})
-        return JSONResponse(result, status_code=503 if result["status"] == "unavailable" else 200)
+        result["timings_ms"].update(api_intake_validation=round(intake_ms, 3), api_readiness=round(ready_ms, 3))
+        serialized = time.monotonic()
+        response = JSONResponse(result, status_code=503 if result["status"] == "unavailable" else 200)
+        serialization_ms = (time.monotonic() - serialized) * 1000
+        response.headers["Server-Timing"] = f"intake;dur={intake_ms:.3f}, readiness;dur={ready_ms:.3f}, serialization;dur={serialization_ms:.3f}"
+        return response
 
     return app
 

@@ -41,6 +41,8 @@ def _digest(data: bytes) -> str:
 def _domain(source: str, title: str) -> str:
     if source == "tkdl":
         return "Traditional Knowledge"
+    if source in {"nba", "gazette"}:
+        return "Biodiversity / ABS"
     value = title.lower()
     for needle, label in (("patent", "Patent"), ("biodivers", "Biodiversity / ABS"), ("biological diversity", "Biodiversity / ABS"),
                           ("geographical indication", "GI"), ("drug", "AYUSH regulation"),
@@ -78,7 +80,8 @@ def _metadata(row, source: str, title: str, text: str, root: Path) -> dict:
         "document_id": row["canonical_id"], "canonical_id": row["canonical_id"],
         "source": source, "source_domain": url.split("/")[2].lower(),
         "authority": {"ipindia": "IP India / CGPDTM", "indiacode": "India Code / Government of India",
-                      "tkdl": "TKDL public website / CSIR"}[source],
+                      "tkdl": "TKDL public website / CSIR", "nba": "National Biodiversity Authority",
+                      "gazette": "Gazette of India / Department of Publication"}[source],
         "evidence_role": role, "title": title, "jurisdiction": "India",
         "legal_domain": category, "ip_domain": category,
         "document_type": "Public information page" if source == "tkdl" else ("Rules" if "rules" in title.lower() else "Act" if "act" in title.lower() else "Guidance"),
@@ -306,7 +309,8 @@ def _publish(root: Path = ROOT, *, repair_pdf=False, update_pointer=True) -> dic
         chunk_hash = _write_jsonl(staging / "chunks.jsonl", chunks)
         manifest = {"generation_id": generation, "created_at": datetime.now(timezone.utc).isoformat(),
                     "documents": len(documents), "chunks": len(chunks),
-                    "sources": {source: sum(doc["source"] == source for doc in documents) for source in ("ipindia", "indiacode", "tkdl")},
+                    "sources": {source: sum(doc["source"] == source for doc in documents)
+                                for source in sorted({"ipindia", "indiacode", "tkdl"} | {doc["source"] for doc in documents})},
                     "documents_sha256": doc_hash, "chunks_sha256": chunk_hash, "review": review,
                     "source_snapshots": {row["source_id"]: row["snapshot_id"] for row in _snapshot_ids(root)},
                     "passage_parser": "pdf-pages-v4" if repair_pdf else "legacy-compatible"}

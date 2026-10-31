@@ -19,6 +19,8 @@ SOURCES = {
     "ipindia": "ipindia.gov.in",
     "tkdl": "tkdl.res.in",
     "indiacode": "indiacode.gov.in",
+    "nba": "nbaindia.nic.in",
+    "gazette": "egazette.gov.in",
 }
 EXTRA_OFFICIAL_HOSTS = {"indiacode": {"upload.indiacode.nic.in", "indiacode.nic.in", "www.indiacode.nic.in"}}
 CHANGE_TYPES = {
