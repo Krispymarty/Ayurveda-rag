@@ -11,7 +11,7 @@ import shutil
 import sqlite3
 from contextlib import closing, nullcontext
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 from .connectors import official_url
@@ -71,12 +71,54 @@ def _known_title(source: str, url: str, extracted: str) -> str:
     return extracted
 
 
+def _publication_fields(row, source, title, text, identity):
+    """Preserve bound candidate observations; never establish legal effect."""
+    if (not isinstance(identity, dict) or identity.get("raw_sha256") != row["sha256"]
+            or identity.get("source_url") != row["canonical_url"] or identity.get("title") != title
+            or not re.fullmatch(r"[0-9a-f]{64}", str(identity.get("raw_sha256", "")))):
+        raise ValueError("publication_identity_binding_mismatch")
+    official_url(source, row["canonical_url"])
+    if identity.get("document_type") not in {"Act", "Rules", "Regulations", "Notification"}:
+        raise ValueError("unsupported_publication_identity_type")
+    pages = {int(number) for number in re.findall(r"^\[Page (\d+)\]$", text, re.M)}
+    anchors = identity.get("publication_anchors")
+    if (not isinstance(anchors, dict) or not anchors or any(
+            not isinstance(key, str) or not key or type(page) is not int or page not in pages
+            for key, page in anchors.items())):
+        raise ValueError("publication_identity_page_anchors_required")
+    fields = {key: identity.get(key) for key in (
+        "title", "document_type", "raw_sha256", "source_url", "issuer", "publisher",
+        "notification_number", "gazette_identifier", "gazette_issue", "publication_anchors")}
+    for key in ("publication_date", "notification_date"):
+        value = identity.get(key)
+        if value is not None:
+            if not isinstance(value, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+                raise ValueError("publication_identity_date_invalid")
+            date.fromisoformat(value)
+        fields[key] = value
+    relationships = identity.get("historical_relationships", [])
+    if not isinstance(relationships, list):
+        raise ValueError("publication_relationships_invalid")
+    observed = []
+    for item in relationships:
+        if (not isinstance(item, dict) or not isinstance(item.get("claim"), str) or not item["claim"].strip()
+                or type(item.get("page")) is not int or item["page"] not in pages):
+            raise ValueError("publication_relationships_invalid")
+        observed.append({"claim": item["claim"], "page": item["page"], "legal_effect_verified": False})
+    fields["historical_relationships"] = observed
+    return {**{key: fields[key] for key in ("document_type", "publication_date", "notification_date",
+            "notification_number", "gazette_identifier", "gazette_issue", "publication_anchors", "historical_relationships")},
+            "source_identity": {key: fields[key] for key in ("issuer", "publisher", "source_url", "raw_sha256")},
+            "commencement_date": None, "verified_identity": fields,
+            "identity_review": "technical_candidate_pending_human_review"}
+
+
 def _metadata(row, source: str, title: str, text: str, root: Path) -> dict:
     url = row["canonical_url"]
     category = _domain(source, title + " " + url)
     role = "institutional_background" if source == "tkdl" else "legal_source"
     record_metadata = json.loads(row.get("metadata_json", "{}"))
-    return {
+    result = {
         "document_id": row["canonical_id"], "canonical_id": row["canonical_id"],
         "source": source, "source_domain": url.split("/")[2].lower(),
         "authority": {"ipindia": "IP India / CGPDTM", "indiacode": "India Code / Government of India",
@@ -96,6 +138,9 @@ def _metadata(row, source: str, title: str, text: str, root: Path) -> dict:
         "parent_identity": record_metadata.get("parent_identity"),
         "metadata_item_url": record_metadata.get("metadata_item_url"),
     }
+    if source in {"nba", "gazette"} and record_metadata.get("verified_identity") is not None:
+        result.update(_publication_fields(row, source, title, text, record_metadata["verified_identity"]))
+    return result
 
 
 def _split(text: str, limit: int = MAX_CHARS) -> list[str]:
