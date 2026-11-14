@@ -187,6 +187,7 @@
   function toggleSources(open, opener) {
     $('source-panel').hidden = !open;
     for (const id of ['status-toggle', 'source-detail-button']) $(id).setAttribute('aria-expanded', String(open));
+    document.querySelectorAll('[data-open-sources]').forEach((button) => button.setAttribute('aria-expanded', String(open)));
     if (open) {
       state.sourceOpener = opener;
       $('source-panel-title').focus();
@@ -222,6 +223,10 @@
     }
     $('source-list').replaceChildren(sourceList);
     $('source-details').replaceChildren(details);
+    if ($('archive-total')) {
+      const ipindia = rows.find((item) => item.source_id === 'ipindia');
+      $('archive-total').textContent = data.index_available ? formatNumber.format(Number(ipindia?.searchable_document_count) || 0) : '—';
+    }
     $('coverage-note').textContent = data.index_available ? `${formatNumber.format(total)} archived documents. Each result includes its official source and capture details.` : 'The evidence collection is temporarily unavailable. Please check service status.';
     $('source-summary').textContent = 'Explore archived IP India documents. India Code and TKDL are not included in this collection. The archive is not currently refreshing; legal status remains unknown.';
     $('generation-line').textContent = data.active_generation_id ? `Collection identifier: ${data.active_generation_id}` : 'No active collection is available.';
@@ -229,6 +234,7 @@
   async function loadSources() {
     try { renderSources(await requestJson('/sources')); }
     catch (_) {
+      if ($('archive-total')) $('archive-total').textContent = '—';
       $('coverage-note').textContent = 'Source counts are temporarily unavailable. This release supports archived IP India research only.';
       $('source-summary').textContent = 'Source status could not be loaded. Close and reopen this panel to retry.';
       $('source-list').querySelectorAll('.source-count').forEach((item) => { item.textContent = 'Status unavailable'; });
@@ -265,6 +271,35 @@
   $('reset-filters').addEventListener('click', () => { $('source-filter').value = ''; $('domain-filter').value = ''; $('top-k').value = '5'; filterCount(); });
   $('suggestions').querySelectorAll('[data-query]').forEach((button) => button.addEventListener('click', () => { $('question').value = button.dataset.query; $('question').dispatchEvent(new Event('input')); $('search-form').requestSubmit(); }));
   for (const id of ['status-toggle', 'source-detail-button']) $(id).addEventListener('click', () => toggleSources($('source-panel').hidden, $(id)));
+  document.querySelectorAll('[data-open-sources]').forEach((button) => button.addEventListener('click', () => toggleSources(true, button)));
+  document.querySelectorAll('[data-research-query]').forEach((link) => link.addEventListener('click', (event) => {
+    event.preventDefault();
+    $('question').value = link.dataset.researchQuery;
+    $('question').dispatchEvent(new Event('input'));
+    $('research').scrollIntoView({block: 'start'});
+    $('question').focus({preventScroll: true});
+  }));
+  const menu = $('nav-toggle');
+  function closeMenu(restoreFocus = false) {
+    if (!menu) return;
+    menu.setAttribute('aria-expanded', 'false');
+    $('site-nav').classList.remove('is-open');
+    $('nav-sign').textContent = '＋';
+    if (restoreFocus) menu.focus();
+  }
+  if (menu) {
+    menu.addEventListener('click', () => {
+      const open = menu.getAttribute('aria-expanded') !== 'true';
+      menu.setAttribute('aria-expanded', String(open));
+      $('site-nav').classList.toggle('is-open', open);
+      $('nav-sign').textContent = open ? '−' : '＋';
+    });
+    $('site-nav').querySelectorAll('a').forEach((link) => link.addEventListener('click', () => closeMenu()));
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && menu.getAttribute('aria-expanded') === 'true') closeMenu(true);
+    });
+    window.matchMedia('(min-width: 901px)').addEventListener('change', () => closeMenu());
+  }
   $('close-sources').addEventListener('click', () => toggleSources(false));
   $('source-panel').addEventListener('keydown', (event) => { if (event.key === 'Escape') toggleSources(false); });
   $('retry-service').addEventListener('click', () => { checkHealth(); loadSources(); });

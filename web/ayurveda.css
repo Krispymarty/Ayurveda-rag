@@ -1,0 +1,197 @@
+/* Botanical public website. The private Passport retains its own styles. */
+body.ayurveda-site {
+  --paper: #f7f5ed;
+  --ink: #253d2e;
+  --forest: #254a35;
+  --accent: #88602d;
+  --muted: #596657;
+  --line: #d5d9cb;
+  --pale: #edf0e5;
+  background: var(--paper);
+  color: var(--ink);
+}
+.ayurveda-site :is(.site-header, main) { width: calc(100% - 80px); max-width: 1320px; }
+.ayurveda-site :is(#about, #research, #how-it-works, #source-panel) { scroll-margin-top: 24px; }
+.ayurveda-site .site-header { padding-block: 24px; gap: 28px; border: 0; }
+.ayurveda-site .brand { gap: 12px; text-decoration: none; flex-shrink: 0; }
+.ayurveda-site .brand-symbol { width: 40px; height: 44px; border-radius: 24px 24px 6px 6px; border: 1px solid #6c8064; font-size: 31px; }
+.ayurveda-site .brand-copy { display: flex; flex-direction: column; gap: 6px; }
+.ayurveda-site .brand-copy > span { line-height: 1; }
+.ayurveda-site .brand-copy small { font-family: var(--sans); font-size: 8px; letter-spacing: 1.05px; font-weight: 500; color: var(--muted); }
+.ayurveda-site .header-nav { gap: 28px; }
+.ayurveda-site .header-nav a { white-space: nowrap; color: var(--ink); }
+.ayurveda-site .header-nav a:hover { border-bottom-color: var(--forest); }
+.ayurveda-site .header-status { background: #edf0e5; border-color: transparent; border-radius: 24px; padding-inline: 16px; }
+.ayurveda-site .nav-toggle { display: none; min-height: 44px; border: 1px solid var(--line); border-radius: 6px; padding: 10px 14px; background: transparent; font-size: 14px; color: var(--ink); align-items: center; gap: 16px; }
+.ayurveda-site .ayurveda-hero { position: relative; isolation: isolate; overflow: hidden; min-height: 570px; border-radius: 14px; background: #f1e8d7; display: flex; align-items: center; }
+.ayurveda-site .hero-art { position: absolute; inset: 0; z-index: -1; }
+.ayurveda-site .hero-art img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+.ayurveda-site .hero-content { padding: 56px 48px 60px; width: 69%; max-width: 850px; }
+.ayurveda-site .hero-kicker { font-size: 10px; font-weight: 600; letter-spacing: 1.7px; color: #665d42; display: flex; align-items: center; gap: 10px; margin: 0 0 26px; }
+.ayurveda-site .hero-kicker > span { width: 7px; height: 11px; border: 1px solid currentColor; border-radius: 8px 0 8px 0; transform: rotate(-15deg); }
+.ayurveda-site h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(44px, 4.6vw, 66px); letter-spacing: -2.1px; line-height: 1.08; margin: 0; text-wrap: balance; }
+.ayurveda-site h1 em { font-weight: 400; color: var(--forest); }
+.ayurveda-site .hero-description { max-width: 47ch; font-size: 16px; line-height: 1.8; color: #46533f; margin: 26px 0 30px; }
+.ayurveda-site .hero-actions { display: flex; align-items: center; gap: 26px; flex-wrap: wrap; }
+.ayurveda-site .primary-link { display: inline-flex; align-items: center; justify-content: space-between; gap: 28px; background: var(--forest); color: #fffdf5; padding: 16px 22px; min-height: 52px; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: 500; }
+.ayurveda-site .primary-link:hover { background: #173724; }
+.ayurveda-site .quiet-link { font-size: 13px; display: inline-flex; align-items: center; gap: 16px; min-height: 44px; text-decoration: underline; text-underline-offset: 5px; }
+.ayurveda-site .hero-scope { display: flex; flex-wrap: wrap; gap: 8px; font-size: 11px; color: #59604b; margin: 24px 0 0; }
+.ayurveda-site .collection-strip { display: flex; align-items: center; justify-content: space-between; gap: 32px; padding: 30px 12px; border-bottom: 1px solid var(--line); }
+.ayurveda-site .collection-strip > p { margin: 0; font-size: 13px; line-height: 1.7; }
+.ayurveda-site .collection-strip > p strong { display: block; font-weight: 500; }
+.ayurveda-site .collection-strip > p > span { color: var(--muted); }
+.ayurveda-site .collection-stat { display: flex; gap: 16px; align-items: center; }
+.ayurveda-site .collection-stat > strong { font-family: var(--serif); font-size: 42px; font-weight: 400; line-height: 1; }
+.ayurveda-site .collection-stat > span { color: var(--muted); font-size: 12px; line-height: 1.5; }
+.ayurveda-site .strip-source-link { display: flex; gap: 24px; align-items: center; min-height: 44px; border: 0; background: transparent; padding: 10px 0; font-size: 13px; color: var(--forest); text-decoration: underline; text-underline-offset: 5px; }
+.ayurveda-site .section-kicker { color: var(--accent); font-size: 10px; font-weight: 600; letter-spacing: 1.7px; margin: 0 0 20px; line-height: 1.7; }
+.ayurveda-site :is(.about-ayurip, .how-it-works) { display: grid; grid-template-columns: 1fr 1fr; gap: 100px; padding: 80px 12px; }
+.ayurveda-site :is(.about-ayurip, .desk-heading, .how-heading) h2 { font-family: var(--serif); font-size: clamp(32px, 3vw, 42px); font-weight: 400; line-height: 1.15; letter-spacing: -.8px; margin: 0 0 24px; text-wrap: balance; }
+.ayurveda-site .about-copy > p:not(.section-kicker) { font-size: 15px; line-height: 1.85; color: var(--muted); max-width: 54ch; }
+.ayurveda-site .about-copy .about-footnote { font-family: var(--serif); color: var(--forest); font-size: 18px; margin-bottom: 0; }
+.ayurveda-site .topic-list { display: flex; flex-direction: column; justify-content: center; }
+.ayurveda-site .topic-link { display: grid; grid-template-columns: 24px 1fr 20px; gap: 20px; align-items: center; padding: 25px 4px; border-top: 1px solid var(--line); text-decoration: none; }
+.ayurveda-site .topic-link:last-child { border-bottom: 1px solid var(--line); }
+.ayurveda-site .topic-number { color: var(--accent); font-family: var(--mono); font-size: 11px; }
+.ayurveda-site .topic-link strong { display: block; font-family: var(--serif); font-size: 24px; font-weight: 400; line-height: 1.2; }
+.ayurveda-site .topic-link small { display: block; font-size: 12px; color: var(--muted); line-height: 1.7; margin-top: 8px; }
+.ayurveda-site .topic-link > span:last-child { color: var(--forest); font-size: 19px; }
+.ayurveda-site .topic-link:hover { background: #edf0e5; }
+.ayurveda-site .research-desk { background: #fffef9; border: 1px solid var(--line); border-radius: 12px; padding: 36px; }
+.ayurveda-site .desk-heading { display: grid; grid-template-columns: 1.4fr 1fr; gap: 56px; align-items: end; padding-bottom: 28px; }
+.ayurveda-site .desk-heading h2 { font-size: 36px; margin-bottom: 0; }
+.ayurveda-site .desk-heading .section-kicker { margin-bottom: 12px; }
+.ayurveda-site .desk-heading > p { font-size: 13px; color: var(--muted); line-height: 1.8; margin: 0; max-width: 45ch; }
+.ayurveda-site .research-layout { gap: 32px; grid-template-columns: minmax(0, 1fr) 270px; }
+.ayurveda-site .research-toolbar { border-color: var(--line); }
+.ayurveda-site .query-row { background: #fffef9; }
+.ayurveda-site .research-sidebar { background: #eef1e6; border-radius: 8px; border-color: transparent; }
+.ayurveda-site .reading-note .eyebrow { color: var(--accent); }
+.ayurveda-site .source-panel { margin-block: 24px 0; border-radius: 8px; }
+.ayurveda-site .how-it-works { padding-top: 80px; padding-bottom: 64px; align-items: start; }
+.ayurveda-site .research-steps { padding: 0; margin: 0; list-style: none; }
+.ayurveda-site .research-steps li { display: flex; gap: 24px; padding-bottom: 24px; margin-bottom: 24px; border-bottom: 1px solid var(--line); }
+.ayurveda-site .research-steps li:last-child { margin-bottom: 0; padding-bottom: 0; border: 0; }
+.ayurveda-site .step-number { flex: 0 0 36px; height: 36px; background: #e9eddf; border-radius: 50%; display: grid; place-items: center; font-family: var(--mono); color: var(--forest); font-size: 11px; }
+.ayurveda-site .research-steps h3 { font-size: 16px; font-weight: 500; line-height: 1.5; margin: 4px 0 10px; }
+.ayurveda-site .research-steps p { color: var(--muted); font-size: 14px; line-height: 1.8; margin: 0; }
+.ayurveda-site .research-help { padding: 32px 12px 0; margin: 0 0 64px; }
+.ayurveda-site .research-help h2 { margin-bottom: 28px; }
+.ayurveda-site .research-help summary { padding-block: 20px; }
+.ayurveda-site .botanical-footer { display: block; width: 100%; max-width: none; background: #254a35; color: #e1e7d7; border: 0; padding: 0; margin: 0; font-size: 13px; }
+.ayurveda-site .footer-inner { width: calc(100% - 104px); max-width: 1296px; margin-inline: auto; padding: 48px 0 40px; display: grid; grid-template-columns: 1.2fr .7fr 1fr; gap: 64px; }
+.ayurveda-site .footer-wordmark { display: inline-block; font-family: var(--serif); color: #fffdf3; text-decoration: none; font-size: 36px; min-height: 44px; line-height: 1.2; }
+.ayurveda-site .footer-about > p { max-width: 32ch; margin-top: 16px; font-size: 13px; }
+.ayurveda-site .footer-links { display: flex; flex-direction: column; align-items: start; padding-top: 2px; }
+.ayurveda-site .footer-links a, .ayurveda-site .footer-scope > a { display: inline-flex; min-height: 44px; align-items: center; text-decoration: none; font-size: 13px; }
+.ayurveda-site .footer-links a:hover, .ayurveda-site .footer-scope > a:hover { text-decoration: underline; text-underline-offset: 5px; }
+.ayurveda-site .footer-scope > p { margin: 9px 0 8px; }
+.ayurveda-site .footer-scope > a { text-decoration: underline; text-underline-offset: 5px; }
+.ayurveda-site .footer-bottom { width: calc(100% - 104px); max-width: 1296px; margin: auto; display: flex; justify-content: space-between; gap: 32px; border-top: 1px solid #52715a; padding: 24px 0; font-size: 11px; color: #d0dbc8; }
+.ayurveda-site .footer-bottom > p { font-size: 11px; text-align: right; }
+.ayurveda-site .botanical-footer a:focus-visible { outline-color: #f6e5ad; }
+
+@media (max-width: 1100px) {
+  .ayurveda-site .site-header { flex-wrap: wrap; gap: 20px; }
+  .ayurveda-site .brand-copy small { display: none; }
+  .ayurveda-site .header-nav { gap: 20px; }
+  .ayurveda-site .hero-content { width: 72%; padding: 40px; }
+  .ayurveda-site h1 { font-size: 52px; }
+  .ayurveda-site .ayurveda-hero { min-height: 540px; }
+  .ayurveda-site :is(.about-ayurip, .how-it-works) { gap: 56px; }
+  .ayurveda-site .research-desk { padding: 28px; }
+  .ayurveda-site .desk-heading { gap: 32px; }
+  .ayurveda-site .desk-heading h2 { font-size: 32px; }
+  .ayurveda-site .research-layout { grid-template-columns: minmax(0, 1fr) 240px; gap: 28px; }
+}
+@media (max-width: 900px) {
+  .ayurveda-site :is(.site-header, main) { width: calc(100% - 48px); }
+  .ayurveda-site .site-header { position: relative; padding-block: 20px; }
+  .ayurveda-site .brand-copy small { display: block; }
+  .ayurveda-site .nav-toggle { display: inline-flex; margin-left: auto; }
+  .ayurveda-site .header-nav { display: none; order: 4; width: 100%; margin: 0; padding: 12px 0 0; border-top: 1px solid var(--line); }
+  .ayurveda-site .header-nav.is-open { display: flex; }
+  .ayurveda-site .header-status { max-width: 230px; }
+  .ayurveda-site .hero-content { width: 75%; padding: 40px 32px; }
+  .ayurveda-site .ayurveda-hero { flex-direction: column; align-items: stretch; min-height: 0; }
+  .ayurveda-site .hero-content { order: 1; width: 100%; }
+  .ayurveda-site .hero-art { position: relative; order: 2; height: 280px; z-index: 0; overflow: hidden; }
+  .ayurveda-site .hero-art img { object-position: right 63%; }
+  .ayurveda-site h1 { font-size: 44px; }
+  .ayurveda-site .hero-description { font-size: 15px; max-width: 38ch; }
+  .ayurveda-site .hero-actions { gap: 16px; }
+  .ayurveda-site .collection-strip { gap: 24px; flex-wrap: wrap; padding-block: 24px; }
+  .ayurveda-site .collection-strip > p { flex: 1 1 42%; }
+  .ayurveda-site .strip-source-link { margin-left: auto; }
+  .ayurveda-site :is(.about-ayurip, .how-it-works) { gap: 32px; padding-block: 56px; }
+  .ayurveda-site .topic-link { gap: 12px; }
+  .ayurveda-site .topic-link strong { font-size: 22px; }
+  .ayurveda-site .research-layout { grid-template-columns: minmax(0, 1fr); }
+  .ayurveda-site .desk-heading { grid-template-columns: 1fr; gap: 16px; }
+  .ayurveda-site .desk-heading > p { max-width: 62ch; }
+  .ayurveda-site .footer-inner { gap: 32px; width: calc(100% - 72px); }
+  .ayurveda-site .footer-bottom { width: calc(100% - 72px); }
+}
+@media (min-width: 901px) and (max-width: 1100px) {
+  /* Keep text readable where the narrower image crop brings foliage inward. */
+  .ayurveda-site .hero-art::after { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, #f4ecdc 0%, #f4ecdcbd 40%, transparent 75%); }
+}
+@media (max-width: 700px) {
+  .ayurveda-site .header-status { display: none; }
+  .ayurveda-site .ayurveda-hero { display: flex; flex-direction: column; align-items: stretch; min-height: 0; background: #f2ebdd; }
+  .ayurveda-site .hero-content { order: 1; width: 100%; padding: 32px 24px 20px; }
+  .ayurveda-site .hero-art { position: relative; order: 2; height: 230px; z-index: 0; overflow: hidden; }
+  .ayurveda-site .hero-art img { object-position: right 63%; width: 100%; height: 100%; }
+  .ayurveda-site h1 { font-size: clamp(34px, 6.5vw, 46px); letter-spacing: -1.3px; }
+  .ayurveda-site .hero-kicker { font-size: 9px; letter-spacing: 1px; margin-bottom: 20px; gap: 8px; }
+  .ayurveda-site .hero-description { max-width: 50ch; font-size: 15px; line-height: 1.75; margin-block: 22px; }
+  .ayurveda-site .hero-actions { gap: 10px 20px; }
+  .ayurveda-site .hero-scope { font-size: 10px; margin-top: 18px; }
+  .ayurveda-site .collection-strip { padding-inline: 0; gap: 20px; }
+  .ayurveda-site .collection-strip > p { flex-basis: 100%; font-size: 13px; }
+  .ayurveda-site .collection-stat { gap: 12px; }
+  .ayurveda-site .collection-stat > strong { font-size: 36px; }
+  .ayurveda-site .collection-stat > span { font-size: 11px; }
+  .ayurveda-site .strip-source-link { font-size: 12px; gap: 8px; }
+  .ayurveda-site :is(.about-ayurip, .how-it-works) { grid-template-columns: 1fr; gap: 28px; padding-inline: 0; padding-block: 48px; }
+  .ayurveda-site :is(.about-ayurip, .how-heading) h2 { font-size: 34px; }
+  .ayurveda-site .about-copy > p:not(.section-kicker) { font-size: 14px; }
+  .ayurveda-site .topic-link { padding-block: 22px; }
+  .ayurveda-site .topic-link small { font-size: 12px; }
+  .ayurveda-site .research-desk { padding: 24px 20px; }
+  .ayurveda-site .desk-heading h2 { font-size: 31px; }
+  .ayurveda-site .section-kicker { font-size: 9px; letter-spacing: 1.3px; margin-bottom: 16px; }
+  .ayurveda-site .research-help { padding-inline: 0; margin-bottom: 48px; }
+  .ayurveda-site .research-help h2 { font-size: 30px; }
+  .ayurveda-site .footer-inner { grid-template-columns: 1fr 1fr; gap: 24px 32px; padding-block: 36px 28px; width: calc(100% - 48px); }
+  .ayurveda-site .footer-about { grid-column: 1 / -1; }
+  .ayurveda-site .footer-about > p { max-width: 42ch; }
+  .ayurveda-site .footer-bottom { width: calc(100% - 48px); flex-direction: column; gap: 12px; }
+  .ayurveda-site .footer-bottom > p { text-align: left; margin: 0; }
+}
+@media (max-width: 400px) {
+  .ayurveda-site :is(.site-header, main) { width: calc(100% - 32px); }
+  .ayurveda-site .brand-copy small { font-size: 7px; letter-spacing: .6px; }
+  .ayurveda-site .brand { gap: 8px; font-size: 28px; }
+  .ayurveda-site .brand-symbol { width: 32px; height: 38px; font-size: 27px; }
+  .ayurveda-site .site-header { gap: 12px; }
+  .ayurveda-site .nav-toggle { padding-inline: 10px; gap: 10px; font-size: 13px; }
+  .ayurveda-site .header-nav { gap: 18px; flex-wrap: wrap; }
+  .ayurveda-site .header-nav a { font-size: 13px; }
+  .ayurveda-site .hero-content { padding: 28px 20px 20px; }
+  .ayurveda-site h1 { font-size: 33px; letter-spacing: -1.1px; }
+  .ayurveda-site .hero-kicker { font-size: 8px; letter-spacing: .7px; }
+  .ayurveda-site .hero-art { height: 210px; }
+  .ayurveda-site .hero-scope { line-height: 1.5; gap: 4px; }
+  .ayurveda-site .collection-strip { column-gap: 12px; }
+  .ayurveda-site .strip-source-link { margin-left: 0; }
+  .ayurveda-site .research-desk { padding-inline: 16px; }
+  .ayurveda-site .research-mode { font-size: 12px; }
+  .ayurveda-site .filter-toggle { padding-inline: 4px; }
+  .ayurveda-site .research-help h2 { font-size: 27px; }
+  .ayurveda-site .footer-inner { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ayurveda-site { scroll-behavior: auto; }
+}

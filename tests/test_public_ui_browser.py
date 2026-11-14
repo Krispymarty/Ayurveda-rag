@@ -56,6 +56,8 @@ class PublicUIBrowserTests(unittest.TestCase):
             files = {"/": ("index.html", "text/html"), "/assets/app.js": ("app.js", "text/javascript"),
                      "/assets/styles.css": ("styles.css", "text/css"),
                      "/assets/polish.css": ("polish.css", "text/css"),
+                     "/assets/ayurveda.css": ("ayurveda.css", "text/css"),
+                     "/assets/images/ayurveda-botanical-hero.png": ("images/ayurveda-botanical-hero.png", "image/png"),
                      "/assets/favicon.svg": ("favicon.svg", "image/svg+xml")}
             if path in files:
                 name, mime = files[path]
@@ -81,6 +83,15 @@ class PublicUIBrowserTests(unittest.TestCase):
             page.locator("#retry-service").click()
             page.wait_for_function("!document.getElementById('submit-button').disabled")
             self.assertEqual(page.locator("#question").input_value(), "SYNTHETIC research question")
+            self.assertEqual(page.locator("#archive-total").inner_text(), "2")
+            search_count = requests.count("/search")
+            page.locator("[data-research-query]").first.click()
+            self.assertEqual(page.locator("#question").input_value(), "Patents Act section 3 traditional knowledge")
+            self.assertEqual(requests.count("/search"), search_count)
+            self.assertTrue(page.locator("#question").evaluate("e => e === document.activeElement"))
+            self.assertTrue(page.locator(".hero-art img").evaluate("e => e.complete && e.naturalWidth > 0"))
+            checks.append("botanical asset loads; collection count uses API; topic fills without submitting")
+            page.locator("#question").fill("SYNTHETIC research question")
             checks.append("initialization blocks search; recovery preserves input")
             page.locator("#submit-button").click()
             page.locator(".evidence-hit").first.wait_for()
@@ -106,6 +117,17 @@ class PublicUIBrowserTests(unittest.TestCase):
             checks.append("source panel keyboard recovery, archive details and supported filters work")
             page.screenshot(path=str(output / "synthetic-desktop.png"), full_page=True)
             page.set_viewport_size({"width": 390, "height": 844})
+            page.locator("#nav-toggle").click()
+            self.assertEqual(page.locator("#nav-toggle").get_attribute("aria-expanded"), "true")
+            self.assertTrue(page.locator("#site-nav").is_visible())
+            page.locator("#site-nav a").first.focus()
+            page.keyboard.press("Escape")
+            self.assertEqual(page.locator("#nav-toggle").get_attribute("aria-expanded"), "false")
+            self.assertTrue(page.locator("#nav-toggle").evaluate("e => e === document.activeElement"))
+            page.locator("#nav-toggle").click()
+            page.locator("#site-nav a[href='#research']").click()
+            self.assertEqual(page.locator("#nav-toggle").get_attribute("aria-expanded"), "false")
+            checks.append("mobile menu opens, closes on navigation and restores focus on Escape")
             self.assertLessEqual(page.evaluate("document.documentElement.scrollWidth"), 390)
             self.assertGreaterEqual(page.locator("#submit-button").bounding_box()["height"], 40)
             page.screenshot(path=str(output / "synthetic-mobile.png"), full_page=True)
@@ -119,7 +141,8 @@ class PublicUIBrowserTests(unittest.TestCase):
             page.get_by_text("Try a different research phrase.", exact=True).wait_for()
             phase["search"] = "unavailable"
             page.locator("#submit-button").click()
-            page.get_by_text("Preparing evidence search…", exact=True).wait_for()
+            page.get_by_text("Preparing evidence search…", exact=True).wait_for(state="attached")
+            self.assertIn("validating the archive", page.locator("#service-message").inner_text())
             self.assertTrue(page.locator("#submit-button").is_disabled())
             checks.append("429, empty results and 503 recovery retain input")
             self.assertNotIn("/answer", requests)
