@@ -14,7 +14,7 @@ from ipindia_corpus.passage_evaluation import matches
 from ipindia_corpus.sync_runner import ROOT
 
 
-def check(base, *, root=ROOT, allow_local=False, baseline=None, host=None):
+def check(base, *, root=ROOT, allow_local=False, baseline=None, host=None, trace=None):
     parsed = urlsplit(base)
     local = parsed.hostname in {"localhost", "127.0.0.1"}
     if parsed.scheme != "https" and not (local and allow_local and parsed.scheme == "http"):
@@ -57,10 +57,21 @@ def check(base, *, root=ROOT, allow_local=False, baseline=None, host=None):
 
     def retrieve(url, item):
         start = time.perf_counter()
-        result = session.get(url.rstrip("/") + "/search", params={"q": item["query"], "top_k": 5}, timeout=15)
+        try:
+            result = session.get(url.rstrip("/") + "/search", params={"q": item["query"], "top_k": 5}, timeout=15)
+        except requests.RequestException as exc:
+            row = {"id": item["id"], "http": None, "latency_ms": (time.perf_counter() - start) * 1000, "error": type(exc).__name__}
+            if trace:
+                trace.write(json.dumps({"target": url, **row}) + "\n")
+                trace.flush()
+            return row
         elapsed = (time.perf_counter() - start) * 1000
         if result.status_code != 200:
-            return {"id": item["id"], "http": result.status_code, "latency_ms": elapsed, "error": "http_failure"}
+            row = {"id": item["id"], "http": result.status_code, "latency_ms": elapsed, "error": "http_failure"}
+            if trace:
+                trace.write(json.dumps({"target": url, **row}) + "\n")
+                trace.flush()
+            return row
         body = result.json()
         hits = body["hits"]
         integrity = True
@@ -70,10 +81,14 @@ def check(base, *, root=ROOT, allow_local=False, baseline=None, host=None):
             integrity &= bool(archived and doc and hit["text"] == archived["text"] and hit["document_id"] == archived["document_id"]
                               and hit["source_url"] == archived["source_url"] == doc["source_url"]
                               and hit["raw_sha256"] == archived["raw_sha256"] == doc["sha256"] and hit["status"] == "unknown")
-        return {"id": item["id"], "http": 200, "latency_ms": elapsed, "integrity": integrity,
+        row = {"id": item["id"], "http": 200, "latency_ms": elapsed, "integrity": integrity,
                 "generation_id": body["generation_id"], "ranking_version": body["ranking_version"],
                 "chunk_ids": [h["chunk_id"] for h in hits],
                 "recall_at_5": sum(any(matches(h, target) for h in hits) for target in item["targets"]) / len(item["targets"])}
+        if trace:
+            trace.write(json.dumps({"target": url, **row}) + "\n")
+            trace.flush()
+        return row
 
     if baseline:
         for item in cases:
@@ -119,7 +134,8 @@ if __name__ == "__main__":
     parser.add_argument("--host")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    result = check(args.base_url, allow_local=args.allow_local, baseline=args.baseline_url, host=args.host)
+    with args.output.with_suffix(".attempts.jsonl").open("x", encoding="utf-8") as trace:
+        result = check(args.base_url, allow_local=args.allow_local, baseline=args.baseline_url, host=args.host, trace=trace)
     with args.output.open("x", encoding="utf-8") as stream:
         json.dump(result, stream, ensure_ascii=False, indent=2)
     print(json.dumps({k: v for k, v in result.items() if k not in ("observations", "baseline_observations", "rate_statuses")}))

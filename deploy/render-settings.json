@@ -1,0 +1,41 @@
+{
+  "purpose": "Reviewed operator inputs; not a submitted API request or provisioning approval",
+  "provider": "Render",
+  "state": "deployment deferred by owner",
+  "architecture": "one image-backed public FastAPI web service and one managed Postgres",
+  "web": {
+    "name": "ayurip-research",
+    "runtime": "image",
+    "image": "REPLACE_WITH_APPROVED_PRIVATE_REGISTRY_IMAGE_DIGEST",
+    "plan": "1c-2g",
+    "region": "singapore",
+    "instances": 1,
+    "health_check_path": "/health",
+    "liveness_path": "/live",
+    "auto_deploy": false,
+    "entrypoint": "image CMD, honors provider PORT",
+    "tls": "provider-managed HTTPS and HTTP redirect",
+    "environment_template": "cloud.env.example"
+  },
+  "database": {
+    "postgres_major": 16,
+    "plan": "0.5c-1g",
+    "region": "singapore",
+    "initial_storage_gb": 1,
+    "storage_autoscaling": false,
+    "extension": "vector",
+    "tls": "verify-full with trusted certificate roots",
+    "app_role": "CONNECT, schema USAGE and SELECT only; migration owner separate",
+    "network": "restrict to approved application/operator clients"
+  },
+  "public_answers": false,
+  "remote_passport": false,
+  "synchronization": false,
+  "mandatory_before_provisioning": [
+    "explicit budget and external-transfer approval",
+    "authenticated Render account and private image registry pull credential",
+    "database restore, TLS and read-only role verification",
+    "exact final HTTPS origin and snapshot SHA-256 in provider secrets",
+    "external HTTPS, browser, restart and persistence verification"
+  ]
+}

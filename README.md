@@ -1,5 +1,7 @@
 # AyurIP evidence service
 
+**14 November 2026 release preparation:** the public research UI and isolated CPU container are verified locally; cloud deployment was explicitly deferred by the owner. The protected corpus and ranker remain unchanged. The unchanged 30-query regression retained 96.67% Recall@5 with 235 ms warm p95 on the constrained release container. Public answers remain blocked and the private Passport remains loopback-only. Submission documents and verified archives are prepared separately; historical report links below refer to the original local workspace.
+
 Active workspace: **`E:\Ayurveda Rag`**. The older `E:\SIH` checkout is a preserved backup.
 
 The local UI is available at `http://127.0.0.1:8000/` when Compose is running. This is an internal evidence-search service. IP India is indexed; staged India Code and TKDL files remain excluded because original capture and passage-fidelity evidence is incomplete. Legal status remains unknown.
