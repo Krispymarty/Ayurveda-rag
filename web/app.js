@@ -3,8 +3,7 @@
   const $ = (id) => document.getElementById(id);
   const sources = {ipindia: 'IP India', indiacode: 'India Code', tkdl: 'TKDL'};
   const officialHosts = new Set(['ipindia.gov.in', 'www.ipindia.gov.in', 'indiacode.gov.in', 'www.indiacode.gov.in', 'indiacode.nic.in', 'www.indiacode.nic.in', 'upload.indiacode.nic.in', 'tkdl.res.in', 'www.tkdl.res.in']);
-  const state = {mode: 'search', capabilities: null, ready: false, pending: false, controller: null, sequence: 0, sourceOpener: null};
-  const initialResults = $('results').firstElementChild.cloneNode(true);
+  const state = {ready: false, pending: false, controller: null, sequence: 0, sourceOpener: null, healthPending: false, healthTimer: null};
   const formatNumber = new Intl.NumberFormat('en-IN');
   const node = (tag, className, text) => {
     const result = document.createElement(tag);
@@ -74,7 +73,7 @@
     if (link.tagName === 'A') link.append(mark);
     title.append(link);
     const anchor = node('div', 'hit-anchor');
-    anchor.append(node('span', '', anchorLabel(hit)), node('span', 'legal-status', 'Legal status unverified'));
+    anchor.append(node('span', '', anchorLabel(hit)), node('span', 'legal-status', 'Legal status unknown'));
     const passage = node('p', 'hit-passage collapsed', hit.text);
     const passageId = `passage-${state.sequence}-${index}`;
     passage.id = passageId;
@@ -89,7 +88,7 @@
       expand.setAttribute('aria-expanded', String(expanded));
       expand.textContent = expanded ? 'Show less −' : 'Read full passage +';
     });
-    footer.append(expand, node('span', '', `Archived ${dateLabel(hit.retrieved_at)}`));
+    footer.append(expand, linkFor(hit, 'Open official document ↗', 'text-button official-document'));
     article.append(eyebrow, title, anchor, passage, footer, provenance(hit));
     return article;
   }
@@ -104,7 +103,7 @@
     $('results-title').textContent = data.hits.length ? 'Evidence, with context' : 'No matching passages';
     $('results-meta').textContent = `${data.hits.length} passage${data.hits.length === 1 ? '' : 's'} · ${(elapsed / 1000).toFixed(2)} s`;
     if (!data.hits.length) {
-      message('Try a more specific question.', 'Use an instrument title, section number or a different phrase. A source with no indexed documents cannot return evidence. You can also reset your filters.');
+      message('Try a different research phrase.', 'Use an instrument title, section number or broader topic. Reset filters if needed. No result does not establish that a legal rule is absent.');
       announce('No matching passages. Try another query or reset your filters.');
       return;
     }
@@ -114,103 +113,9 @@
     $('results').replaceChildren(fragment);
     announce(`${data.hits.length} evidence passages found.`);
   }
-  function searchInstead() {
-    const button = node('button', 'text-button', 'Search the evidence instead ↗');
-    button.type = 'button';
-    button.addEventListener('click', () => { setMode('search'); $('search-form').requestSubmit(); });
-    return button;
-  }
-  function answerReason(reason, unavailable) {
-    const messages = {
-      current_legal_status_unverified: 'The archived evidence does not verify current legal status. Check authoritative amendments and commencement information before relying on a provision.',
-      institutional_background_only: 'Only institutional background was found. It cannot establish a legal rule.',
-      personal_legal_or_medical_advice: 'This service cannot provide personal legal or medical advice. You can search the official evidence for a specific instrument or provision.',
-      unsafe_instruction_request: 'Ask a research question about an instrument or provision so the service can ground the response in archived evidence.',
-      answer_generation_disabled: 'Answer generation is not enabled. You can search and inspect the archived source passages.',
-      provider_timeout: 'The local answer provider took too long to respond. Try again or search the evidence directly.',
-      model_digest_mismatch: 'The configured local answer provider could not be verified. Evidence search remains available.',
-      model_identity_mismatch: 'The configured local answer provider could not be verified. Evidence search remains available.'
-    };
-    return messages[reason] || (unavailable ? 'The answer service is not available. Search archived passages directly.' : 'The available passages cannot support a verified response. Try a precise provision or inspect the evidence.');
-  }
-  function renderAnswer(data, elapsed) {
-    $('results-meta').textContent = `${(elapsed / 1000).toFixed(2)} s`;
-    if (data.status !== 'answered') {
-      const unavailable = data.status === 'unavailable';
-      $('results-title').textContent = unavailable ? 'Answer generation unavailable' : 'More evidence is needed';
-      const block = message(unavailable ? 'Evidence search is still available.' : 'This question needs further verification.', answerReason(data.reason, unavailable));
-      block.append(searchInstead());
-      if (data.notice) block.append(node('p', 'result-notice', data.notice));
-      announce(unavailable ? 'Answer generation is unavailable.' : 'The service abstained. More evidence is needed.');
-      return;
-    }
-    // Do not show an uncited answer body when the server has no validated claims.
-    const claims = Array.isArray(data.claims) ? data.claims : [];
-    if (!claims.length || claims.some((claim) => !Array.isArray(claim.citations) || !claim.citations.length || claim.citations.some((citation) => !citationUrl(citation) || !citation.quote))) {
-      $('results-title').textContent = 'Response could not be verified';
-      message('Verified citations are required.', 'The response did not contain complete official citations. Search the source passages directly.').append(searchInstead());
-      announce('Response hidden because verified citations are missing.');
-      return;
-    }
-    $('results-title').textContent = 'A response grounded in evidence';
-    const fragment = document.createDocumentFragment();
-    fragment.append(node('p', 'answer-intro', 'VERIFIED EXTRACTS · CHECK THE CONTEXT'));
-    fragment.append(node('p', 'result-notice', data.notice || 'These are archived source extracts, not a determination of current law or legal advice.'));
-    claims.forEach((claim, claimIndex) => {
-      const article = node('article', 'answer-claim');
-      article.append(node('p', 'claim-text', claim.text));
-      const citations = node('div', 'claim-citations');
-      claim.citations.forEach((citation, citationIndex) => {
-        const label = `[${claimIndex + 1}.${citationIndex + 1}] ${citation.title || 'Official source'} · ${anchorLabel(citation)}`;
-        citations.append(linkFor(citation, label, 'claim-citation'));
-      });
-      article.append(citations);
-      const details = node('details', 'citation-evidence');
-      details.append(node('summary', '', 'Inspect cited extracts'));
-      claim.citations.forEach((citation) => {
-        details.append(node('blockquote', '', citation.quote));
-        details.append(provenance(citation));
-      });
-      article.append(details);
-      fragment.append(article);
-    });
-    $('results').replaceChildren(fragment);
-    announce(`${claims.length} verified extract${claims.length === 1 ? '' : 's'} with official citations.`);
-  }
-  function answerReady() {
-    const c = state.capabilities;
-    return Boolean(c && c.answer_generation_enabled && c.provider_configured !== false);
-  }
-  function answerUnavailableMessage() {
-    return state.capabilities?.answer_generation_reason === 'three_source_not_certified'
-      ? 'Answers are waiting for India Code and TKDL source certification. Evidence search remains available.'
-      : 'The local answer provider is not enabled or available. Evidence search remains available.';
-  }
   function updateSubmit() {
-    $('submit-button').disabled = !state.ready || state.pending || (state.mode === 'answer' && !answerReady());
-    $('submit-label').textContent = state.pending ? (state.mode === 'answer' ? 'Checking evidence…' : 'Searching…') : (state.mode === 'answer' ? 'Ask with citations' : 'Find evidence');
-  }
-  function setMode(mode) {
-    if (state.mode === mode) return;
-    if (state.controller) state.controller.abort();
-    state.sequence += 1;
-    state.pending = false;
-    state.mode = mode;
-    $('results').setAttribute('aria-busy', 'false');
-    for (const value of ['search', 'answer']) {
-      $(`mode-${value}`).classList.toggle('active', mode === value);
-      $(`mode-${value}`).setAttribute('aria-pressed', String(mode === value));
-    }
-    $('top-k').disabled = mode === 'answer';
-    if (mode === 'answer') $('top-k').value = '5';
-    $('question-label').textContent = mode === 'answer' ? 'What would you like to verify?' : 'What are you researching?';
-    $('answer-availability').hidden = mode !== 'answer';
-    $('answer-availability').textContent = answerReady() ? 'Answers use verified archived extracts with claim-level citations. Questions about current legal status or personal legal advice may require abstention.' : answerUnavailableMessage();
-    $('results-title').textContent = mode === 'answer' ? 'Ask, then inspect the evidence' : 'Your research starts here';
-    $('results-meta').textContent = '';
-    $('results').replaceChildren(initialResults.cloneNode(true));
-    updateSubmit();
-    $('question').focus();
+    $('submit-button').disabled = !state.ready || state.pending;
+    $('submit-label').textContent = state.pending ? 'Searching…' : 'Find evidence';
   }
   async function requestJson(url, options = {}, timeout = 15000, allowUnavailable = false) {
     const controller = new AbortController();
@@ -223,7 +128,7 @@
   }
   async function submit(event) {
     event.preventDefault();
-    if (!state.ready) { announce('Evidence search is preparing or unavailable. Your question has been kept.'); return; }
+    if (!state.ready || state.pending) { announce('Evidence search is preparing or unavailable. Your research question has been kept.'); return; }
     const query = $('question').value.trim();
     if (query.length < 2 || query.length > 500) {
       $('question').setCustomValidity('Enter a research question between 2 and 500 characters.');
@@ -231,47 +136,40 @@
       return;
     }
     $('question').setCustomValidity('');
-    if (state.mode === 'answer' && !answerReady()) return;
     if (state.controller) state.controller.abort();
     const controller = new AbortController();
     const sequence = ++state.sequence;
-    const mode = state.mode;
     state.controller = controller;
     state.pending = true;
     updateSubmit();
     $('results').setAttribute('aria-busy', 'true');
-    $('results-title').textContent = mode === 'answer' ? 'Checking the source evidence' : 'Searching the archive';
+    $('results-title').textContent = 'Searching the archive';
     $('results-meta').textContent = '';
     const loading = node('div', 'state-block');
     loading.setAttribute('aria-hidden', 'true');
     for (let i = 0; i < 3; i += 1) loading.append(node('div', 'loading-line'));
     $('results').replaceChildren(loading);
-    announce(mode === 'answer' ? 'Checking archived evidence and citations.' : 'Searching archived evidence.');
-    const source = $('source-filter').value || null;
-    const domain = $('domain-filter').value || null;
+    announce('Searching archived evidence.');
     const params = new URLSearchParams({q: query, top_k: $('top-k').value});
-    if (source) params.set('source', source);
-    if (domain) params.set('domain', domain);
+    if ($('source-filter').value) params.set('source', $('source-filter').value);
+    if ($('domain-filter').value) params.set('domain', $('domain-filter').value);
     let timedOut = false;
-    const timer = window.setTimeout(() => { timedOut = true; controller.abort(); }, mode === 'answer' ? 90000 : 45000);
+    const timer = window.setTimeout(() => { timedOut = true; controller.abort(); }, 45000);
     const started = performance.now();
     try {
-      const response = await fetch(mode === 'search' ? `/search?${params}` : '/answer', {
-        method: mode === 'search' ? 'GET' : 'POST', credentials: 'same-origin', cache: 'no-store', signal: controller.signal,
-        ...(mode === 'answer' ? {headers: {'Content-Type': 'application/json'}, body: JSON.stringify({question: query, top_k: 5, source, domain})} : {})
-      });
+      const response = await fetch(`/search?${params}`, {credentials: 'same-origin', cache: 'no-store', signal: controller.signal});
       if (sequence !== state.sequence) return;
       if (!response.ok) throw new Error(`http_${response.status}`);
       const data = await response.json();
       if (sequence !== state.sequence) return;
-      if (mode === 'search') renderSearch(data, performance.now() - started);
-      else renderAnswer(data, performance.now() - started);
+      renderSearch(data, performance.now() - started);
     } catch (error) {
       if (sequence !== state.sequence || (error.name === 'AbortError' && !timedOut)) return;
       $('results-title').textContent = 'Research is temporarily unavailable';
       const rateLimited = error.message === 'http_429';
-      message(rateLimited ? 'Please pause before trying again.' : timedOut ? 'The request took too long.' : 'We could not complete this request.', rateLimited ? 'The service is receiving too many requests. Wait a moment and try again.' : 'Your question is still in the search field. Try again shortly, or check source status for service availability.', true);
-      announce(rateLimited ? 'Too many requests. Please wait and try again.' : 'The request failed. Your question has been preserved.');
+      message(rateLimited ? 'Please pause before trying again.' : timedOut ? 'The request took too long.' : 'We could not complete this request.', rateLimited ? 'The service is receiving too many requests. Wait a moment and try again.' : 'Your research question is still in the field. Check service status or try again shortly.', true);
+      announce(rateLimited ? 'Too many requests. Please wait and try again.' : 'The request failed. Your research question has been preserved.');
+      if (error.message === 'http_503') checkHealth();
     } finally {
       window.clearTimeout(timer);
       if (sequence === state.sequence) {
@@ -293,11 +191,12 @@
       state.sourceOpener = opener;
       $('source-panel-title').focus();
       $('source-panel').scrollIntoView({block: 'nearest'});
+      loadSources();
+      if (!state.ready) checkHealth();
     } else if (state.sourceOpener) state.sourceOpener.focus();
   }
   function renderSources(data) {
     const rows = Array.isArray(data.sources) ? data.sources : [];
-    const indexed = rows.filter((item) => Number(item.searchable_document_count) > 0);
     const total = rows.reduce((sum, item) => sum + (Number(item.searchable_document_count) || 0), 0);
     const sourceList = document.createDocumentFragment();
     const details = document.createDocumentFragment();
@@ -307,7 +206,7 @@
       const row = node('div', 'source-row');
       const label = node('span', '', sources[id]);
       if (id === 'tkdl') label.append(node('small', '', 'public pages'));
-      row.append(label, node('span', `source-count${count ? ' available' : ''}`, count ? `${formatNumber.format(count)} documents` : 'Not indexed'));
+      row.append(label, node('span', `source-count${count ? ' available' : ''}`, count ? `${formatNumber.format(count)} documents` : 'Not available'));
       sourceList.append(row);
       const entry = node('article', 'source-status-entry');
       entry.append(node('h3', '', sources[id]));
@@ -315,52 +214,51 @@
       addDefinition(dl, 'Searchable documents', formatNumber.format(count));
       addDefinition(dl, 'Last capture', dateLabel(item?.last_successful_sync));
       addDefinition(dl, 'Last publication', dateLabel(item?.last_successful_publication));
-      addDefinition(dl, 'Access review', item?.access_review_status === 'approved' ? 'Approved public paths' : 'Unresolved · fresh capture deferred');
+      addDefinition(dl, 'Source coverage', count ? 'Archived evidence available' : 'Not admitted to this release');
       addDefinition(dl, 'Evidence role', id === 'tkdl' ? 'Institutional background' : 'Official archived evidence');
       addDefinition(dl, 'Legal status', 'Unknown');
-      if ((item?.pipeline_failures || []).length || (item?.recent_review_items || []).length) addDefinition(dl, 'Review items', 'Source review required before new capture');
       entry.append(dl);
       details.append(entry);
     }
     $('source-list').replaceChildren(sourceList);
     $('source-details').replaceChildren(details);
-    $('coverage-note').textContent = data.index_available ? `${formatNumber.format(total)} documents searchable from ${indexed.length} of 3 sources. Three-source certification is pending.` : 'No active searchable index. Source certification is pending.';
-    $('source-summary').textContent = 'Counts refer to the active searchable collection. Archived or staged files are not necessarily accepted or indexed evidence. Fresh synchronization is deferred.';
-    $('generation-line').textContent = data.active_generation_id ? `Active collection: ${data.active_generation_id}` : 'No active collection is available.';
+    $('coverage-note').textContent = data.index_available ? `${formatNumber.format(total)} archived documents in the active searchable collection. India Code and TKDL certification remains pending.` : 'No active searchable index. Source certification is pending.';
+    $('source-summary').textContent = 'Counts describe the active searchable collection. Staged files and quarantined source candidates are not searchable evidence. Fresh synchronization is paused.';
+    $('generation-line').textContent = data.active_generation_id ? `Collection identifier: ${data.active_generation_id}` : 'No active collection is available.';
+  }
+  async function loadSources() {
+    try { renderSources(await requestJson('/sources')); }
+    catch (_) {
+      $('coverage-note').textContent = 'Source counts are temporarily unavailable. This release supports archived IP India research only.';
+      $('source-summary').textContent = 'Source status could not be loaded. Close and reopen this panel to retry.';
+      $('source-list').querySelectorAll('.source-count').forEach((item) => { item.textContent = 'Status unavailable'; });
+    }
   }
   function showHealth(data) {
-    const healthy = data?.status === 'ok';
-    state.ready = healthy;
+    const wasReady = state.ready;
+    state.ready = data?.status === 'ok';
     const preparing = ['not_started', 'initializing'].includes(data?.readiness?.state);
-    $('health-label').textContent = healthy ? 'Evidence search available' : preparing ? 'Preparing evidence search…' : 'Service unavailable';
-    $('health-dot').className = `status-dot ${healthy ? 'ready' : 'error'}`;
+    $('health-label').textContent = state.ready ? 'Evidence search available' : preparing ? 'Preparing evidence search…' : 'Service unavailable';
+    $('health-dot').className = `status-dot ${state.ready ? 'ready' : 'error'}`;
+    $('service-message').textContent = state.ready ? 'Search the archive. Expand a passage and inspect its official source.' : preparing ? 'The service is validating the archive before accepting searches. Your question will stay in the field.' : 'Evidence search is temporarily unavailable. Your research question has been kept.';
+    $('service-notice').classList.toggle('unavailable', !state.ready);
+    $('retry-service').hidden = state.ready;
     updateSubmit();
-    if (preparing) window.setTimeout(async () => {
-      try { showHealth(await requestJson('/health', {}, 5000, true)); }
-      catch (_) { showHealth(null); }
-    }, 2000);
+    if (state.ready && !wasReady) loadSources();
+    window.clearTimeout(state.healthTimer);
+    if (!state.ready) state.healthTimer = window.setTimeout(checkHealth, preparing ? 3000 : 15000);
   }
-  async function initialize() {
-    const results = await Promise.allSettled([requestJson('/health', {}, 15000, true), requestJson('/sources'), requestJson('/capabilities')]);
-    const [health, sourceResult, capabilities] = results;
-    showHealth(health.status === 'fulfilled' ? health.value : null);
-    if (sourceResult.status === 'fulfilled') renderSources(sourceResult.value);
-    else {
-      $('coverage-note').textContent = 'Source counts are currently unavailable. Open source status for details.';
-      $('source-summary').textContent = 'Source status could not be loaded. Please try again later.';
-      $('source-list').querySelectorAll('.source-count').forEach((item) => { item.textContent = 'Unavailable'; });
-    }
-    if (capabilities.status === 'fulfilled') state.capabilities = capabilities.value;
-    if (state.mode === 'answer') {
-      $('answer-availability').textContent = answerReady() ? 'Answers use verified archived extracts with claim-level citations. Current-status questions may require abstention.' : answerUnavailableMessage();
-    }
-    updateSubmit();
+  async function checkHealth() {
+    if (state.healthPending) return;
+    state.healthPending = true;
+    $('retry-service').disabled = true;
+    try { showHealth(await requestJson('/health', {}, 10000, true)); }
+    catch (_) { showHealth(null); }
+    finally { state.healthPending = false; $('retry-service').disabled = false; }
   }
   $('search-form').addEventListener('submit', submit);
   $('question').addEventListener('input', () => { $('question').setCustomValidity(''); $('character-count').textContent = `${$('question').value.length} / 500`; });
   $('question').addEventListener('keydown', (event) => { if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) { event.preventDefault(); if (!state.pending) $('search-form').requestSubmit(); } });
-  $('mode-search').addEventListener('click', () => setMode('search'));
-  $('mode-answer').addEventListener('click', () => setMode('answer'));
   $('filter-toggle').addEventListener('click', () => { const expanded = $('filter-toggle').getAttribute('aria-expanded') !== 'true'; $('filters').hidden = !expanded; $('filter-toggle').setAttribute('aria-expanded', String(expanded)); });
   $('source-filter').addEventListener('change', filterCount);
   $('domain-filter').addEventListener('change', filterCount);
@@ -369,5 +267,7 @@
   for (const id of ['status-toggle', 'source-detail-button']) $(id).addEventListener('click', () => toggleSources($('source-panel').hidden, $(id)));
   $('close-sources').addEventListener('click', () => toggleSources(false));
   $('source-panel').addEventListener('keydown', (event) => { if (event.key === 'Escape') toggleSources(false); });
-  initialize();
+  $('retry-service').addEventListener('click', () => { checkHealth(); loadSources(); });
+  checkHealth();
+  loadSources();
 })();

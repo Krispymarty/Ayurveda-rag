@@ -12,6 +12,8 @@ from collections import OrderedDict
 
 from starlette.responses import JSONResponse
 
+from .cloud_config import load_deployment_config
+
 logger = logging.getLogger(__name__)
 MAX_POST_BYTES = 8192
 MAX_CLIENT_BUCKETS = 2048
@@ -58,8 +60,9 @@ class ClientBuckets:
 class SecurityMiddleware:
     def __init__(self, app, *, clock=time.monotonic):
         self.app = app
+        self.deployment = load_deployment_config()
         # Read operator configuration once, outside request/source data paths.
-        self.rate_enabled = os.environ.get("AYURIP_RATE_LIMIT_ENABLED", "1") != "0"
+        self.rate_enabled = self.deployment.public_research or os.environ.get("AYURIP_RATE_LIMIT_ENABLED", "1") != "0"
         self.buckets = ClientBuckets(clock=clock)
         self.gates = {"search": threading.BoundedSemaphore(2),
                       "answer": threading.BoundedSemaphore(1)}
@@ -69,12 +72,14 @@ class SecurityMiddleware:
             await self.app(scope, receive, send)
             return
         path = scope.get("path", "")
-        csp = DOCS_CSP if path in {"/docs", "/redoc"} else CSP
+        csp = DOCS_CSP if not self.deployment.public_research and path in {"/docs", "/redoc"} else CSP
         security_headers = {b"content-security-policy": csp.encode("ascii"),
                             b"x-content-type-options": b"nosniff",
                             b"x-frame-options": b"DENY",
                             b"referrer-policy": b"no-referrer",
                             b"permissions-policy": b"camera=(), microphone=(), geolocation=()"}
+        if self.deployment.public_research:
+            security_headers[b"strict-transport-security"] = b"max-age=31536000"
         response_started = False
 
         async def guarded_send(message):
@@ -94,14 +99,28 @@ class SecurityMiddleware:
         hosts = [value for key, value in scope.get("headers", []) if key.lower() == b"host"]
         try:
             host = hosts[0].decode("ascii") if len(hosts) == 1 else ""
-            match = ALLOWED_HOST.fullmatch(host)
-            if not match or (match[1] and int(match[1]) > 65535):
+            if not self.deployment.allows_host(host):
                 raise ValueError("untrusted host")
         except (UnicodeDecodeError, ValueError):
             await reject(400, "invalid_host")
             return
 
+        origins = [value for key, value in scope.get("headers", []) if key.lower() == b"origin"]
+        if self.deployment.public_research and origins:
+            try:
+                allowed_origin = len(origins) == 1 and self.deployment.allows_origin(origins[0].decode("ascii"))
+            except UnicodeDecodeError:
+                allowed_origin = False
+            if not allowed_origin:
+                await reject(403, "invalid_origin")
+                return
+
         if scope.get("method") == "POST":
+            if self.deployment.public_research:
+                content_types = [value for key, value in scope.get("headers", []) if key.lower() == b"content-type"]
+                if len(content_types) != 1 or content_types[0].split(b";", 1)[0].strip().lower() != b"application/json":
+                    await reject(415, "application_json_required")
+                    return
             lengths = [value for key, value in scope.get("headers", []) if key.lower() == b"content-length"]
             transfer = any(key.lower() == b"transfer-encoding" for key, _ in scope.get("headers", []))
             if lengths and (len(lengths) != 1 or len(lengths[0]) > 10

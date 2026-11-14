@@ -25,6 +25,9 @@ from .sync_runner import ROOT
 from .grounded_answers import generate_answer, load_config, NOTICE
 from .http_security import configure_security
 from .readiness import Readiness
+from .cloud_config import load_deployment_config
+
+DEPLOYMENT = load_deployment_config()
 
 
 @asynccontextmanager
@@ -33,7 +36,10 @@ async def lifespan(app):
     yield
     readiness.close()
 
-app = FastAPI(title="AyurIP Evidence Search", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="AyurIP Evidence Search", version="0.1.0", lifespan=lifespan,
+              docs_url=None if DEPLOYMENT.public_research else "/docs",
+              redoc_url=None if DEPLOYMENT.public_research else "/redoc",
+              openapi_url=None if DEPLOYMENT.public_research else "/openapi.json")
 configure_security(app)
 app.mount("/assets", StaticFiles(directory=ROOT / "web", check_dir=False), name="assets")
 logger = logging.getLogger(__name__)
@@ -131,12 +137,15 @@ def _answer_capabilities():
         provider = {"provider": config["provider"], "model": config["model"], "model_digest": config["model_digest"], "digest_verified": False}
     except (OSError, ValueError, TypeError, KeyError):
         configured, provider = False, {}
+    if DEPLOYMENT.public_research:
+        configured, provider = False, {}
     return {"active_generation_id": generation_id, "index_available": bool(generation_id),
             "active_source_document_counts": counts, "three_source_certified": certified,
             "certification": certification, "provider_configured": configured, "provider": provider,
             "answer_generation_enabled": bool(certified and configured), "answer_mode": "verified_extracts",
             "answer_generation_reason": None if certified and configured else "three_source_not_certified" if not certified else "answer_generation_disabled",
-            "public_release_ready": False, "deployment": "local_internal", "notice": NOTICE}
+            "public_release_ready": False, "deployment": DEPLOYMENT.mode,
+            "private_passport_enabled": False, "notice": NOTICE}
 
 
 @app.get("/capabilities")
@@ -159,6 +168,10 @@ def _verify_answer_hit(hit, generation_id):
 
 @app.post("/answer")
 def answer_endpoint(request: AnswerRequest):
+    if DEPLOYMENT.public_research:
+        return JSONResponse(status_code=503, content={"status": "unavailable", "answer_text": "", "claims": [],
+            "reason": "three_source_not_certified", "notice": NOTICE,
+            "generation_id": None, "mode": "verified_extracts", "provider": {}})
     capabilities = _answer_capabilities()
     if not capabilities["answer_generation_enabled"]:
         return JSONResponse(status_code=503, content={"status": "unavailable", "answer_text": "", "claims": [],
@@ -343,6 +356,26 @@ def search_endpoint(q: str = Query(min_length=2, max_length=500),
 
 @app.get("/sources")
 def sources_endpoint():
+    if DEPLOYMENT.public_research:
+        # Public status describes only the validated searchable snapshot. Local
+        # capture paths, failed URLs/exception details and reviewer data stay local.
+        try:
+            snapshot = _ensure_ready()
+            sources = []
+            for source, domain in (("ipindia", "ipindia.gov.in"), ("indiacode", "indiacode.gov.in"), ("tkdl", "tkdl.res.in")):
+                documents = [doc for doc in snapshot["documents"].values() if doc.get("source") == source]
+                captures = [doc["retrieved_at"] for doc in documents if isinstance(doc.get("retrieved_at"), str)]
+                sources.append({"source_id": source, "domain": domain,
+                                "searchable_document_count": len(documents),
+                                "last_successful_capture": max(captures) if captures else None,
+                                "synchronization_enabled": False,
+                                "legal_status": "unknown",
+                                "search_admission": "accepted" if documents else "not_admitted"})
+            return {"active_generation_id": snapshot["binding"][0], "index_available": True,
+                    "sources": sources, "staged_certification": _certification_summary()}
+        except (ValueError, OSError, DatabaseError) as exc:
+            logger.exception("Public source status unavailable")
+            raise HTTPException(status_code=503, detail="sources_unavailable") from exc
     path = ROOT / "data" / "manifests" / "manifest.sqlite"
     if not path.exists():
         raise HTTPException(status_code=503, detail="manifest unavailable")

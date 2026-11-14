@@ -49,3 +49,13 @@ tests/tmp*/
 /*.zip
 /*.jsonl
 /*.csv
+
+# Generated submission packages, duplicated source and local release evidence.
+/submission/*.zip
+/submission/*.sha256
+/submission/AyurIP-v1/source/
+/submission/AyurIP-v1/deploy/
+/submission/AyurIP-v1/evidence/
+/submission/AyurIP-v1/screenshots/
+/submission/AyurIP-v1/MANIFEST.json
+/submission/AyurIP-v1/RELEASE.json
