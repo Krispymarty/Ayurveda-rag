@@ -23,7 +23,8 @@ class PublicUIBrowserTests(unittest.TestCase):
         requests, errors, checks = [], [], []
         phase = {"ready": False, "search": "hits"}
         source = {"index_available": True, "active_generation_id": "synthetic-ui-fixture",
-                  "sources": [{"source_id": "ipindia", "searchable_document_count": 2},
+                  "sources": [{"source_id": "ipindia", "searchable_document_count": 2,
+                               "last_successful_capture": "2026-10-01T00:00:00+00:00"},
                               {"source_id": "indiacode", "searchable_document_count": 0},
                               {"source_id": "tkdl", "searchable_document_count": 0}]}
         hit = {"title": "Synthetic UI fixture — not legal evidence", "text": '<img src=x onerror="window.fixtureInjection=true"> Synthetic text only.',
@@ -53,7 +54,9 @@ class PublicUIBrowserTests(unittest.TestCase):
                 return route.fulfill(json={"hits": [] if phase["search"] == "empty" else [hit, forged],
                                            "notice": "Synthetic browser fixture. Not deployed or legal evidence."})
             files = {"/": ("index.html", "text/html"), "/assets/app.js": ("app.js", "text/javascript"),
-                     "/assets/styles.css": ("styles.css", "text/css")}
+                     "/assets/styles.css": ("styles.css", "text/css"),
+                     "/assets/polish.css": ("polish.css", "text/css"),
+                     "/assets/favicon.svg": ("favicon.svg", "image/svg+xml")}
             if path in files:
                 name, mime = files[path]
                 return route.fulfill(content_type=mime + "; charset=utf-8", body=(root / "web" / name).read_bytes())
@@ -97,6 +100,7 @@ class PublicUIBrowserTests(unittest.TestCase):
             self.assertEqual(page.locator("#mode-answer").count(), 0)
             page.locator("#source-detail-button").click()
             self.assertFalse(page.locator("#source-panel").is_hidden())
+            self.assertIn("Oct 2026", page.locator("#source-details").inner_text())
             page.locator("#source-panel-title").press("Escape")
             self.assertTrue(page.locator("#source-panel").is_hidden())
             checks.append("source panel keyboard recovery, archive details and supported filters work")

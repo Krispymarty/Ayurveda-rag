@@ -1,0 +1,201 @@
+/* Public evidence desk. Scoped so the private Passport keeps its existing UI. */
+body.research-app {
+  --muted: #53645b;
+  --line: #cfd7ca;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 48px;
+  --control-line: #82917f;
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+.research-app :is(.site-header, main, .site-footer) {
+  width: calc(100% - 96px);
+  max-width: 1248px;
+  margin-inline: auto;
+  padding-inline: 0;
+}
+.research-app :is(#research, #research-help, #source-panel) { scroll-margin-top: 24px; }
+.research-app .site-header { padding-block: 24px; gap: 32px; }
+.research-app .brand { font-size: 32px; gap: 12px; min-height: 44px; }
+.research-app .header-nav { display: flex; align-items: center; gap: 32px; margin-left: auto; }
+.research-app .header-nav a { font-size: 14px; text-decoration: none; padding: 12px 0; border-bottom: 2px solid transparent; }
+.research-app .header-nav a[aria-current] { border-color: var(--forest); }
+.research-app .header-nav a:hover { color: var(--accent); }
+.research-app .header-status {
+  display: grid;
+  grid-template-columns: 7px 1fr auto;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 12px;
+  min-height: 44px;
+  font-size: 12px;
+  gap: 9px;
+  line-height: 1.4;
+}
+.research-app .header-status:hover { background: var(--pale); border-color: #9eae9c; }
+.research-app .status-dot { width: 7px; height: 7px; }
+.research-app .intro { display: grid; grid-template-columns: 1.2fr 1fr; gap: 64px; align-items: center; max-width: none; padding: 40px 0 32px; }
+.research-app .intro-heading > .eyebrow { display: flex; gap: 12px; align-items: center; }
+.research-app .eyebrow { font-size: 11px; letter-spacing: 1.5px; }
+.research-app .edition { font-size: 10px; margin-left: 8px; }
+.research-app h1 { font-size: clamp(43px, 4.7vw, 60px); line-height: 1.08; letter-spacing: -1.9px; margin: 20px 0 0; }
+.research-app .intro-support { padding-top: 28px; }
+.research-app .intro-copy { font-size: 16px; line-height: 1.7; max-width: 44ch; }
+.research-app .scope-badges { gap: 10px 20px; margin-top: 20px; }
+.research-app .scope-badges span { border: 0; padding: 0; font-size: 12px; color: var(--muted); display: inline-flex; align-items: center; }
+.research-app .scope-badges span + span::before { content: none; }
+.research-app .research-layout { grid-template-columns: minmax(0, 1fr) 280px; gap: 40px; }
+.research-app .research-toolbar { min-height: 56px; }
+.research-app .research-mode { font-size: 15px; padding: 16px 0; }
+.research-app .filter-toggle { font-size: 13px; min-height: 44px; padding: 10px 8px; gap: 8px; }
+.research-app .filter-toggle:hover, .research-app .filter-toggle[aria-expanded="true"] { background: var(--pale); }
+.research-app .search-form { margin-top: 24px; }
+.research-app .search-form > label { font-size: 14px; margin-bottom: 12px; }
+.research-app .query-row { min-height: 136px; padding: 20px; gap: 20px; border-color: var(--control-line); border-radius: 8px; box-shadow: 0 2px 5px #173e3405; }
+.research-app .query-row:focus-within { border-color: var(--forest); box-shadow: 0 0 0 3px #173e3417; }
+.research-app textarea { min-height: 84px; line-height: 1.55; font-size: 21px; }
+.research-app textarea::placeholder { color: #5f6d62; font-size: 20px; }
+.research-app .submit-button { min-height: 48px; border-radius: 5px; font-size: 13px; gap: 18px; padding: 13px 18px; }
+.research-app .submit-button:active { background: #102e26; }
+.research-app .query-footer { font-size: 12px; padding-top: 12px; }
+.research-app .privacy-hint { font-size: 12px; line-height: 1.6; margin-top: 12px; max-width: 74ch; }
+.research-app .service-notice { margin-top: 16px; font-size: 13px; line-height: 1.6; gap: 12px; }
+.research-app .service-notice.unavailable { padding: 12px 16px; background: #f3ede3; }
+.research-app .text-button { font-size: 13px; min-height: 44px; display: inline-flex; align-items: center; }
+.research-app .filters { gap: 16px; padding-block: 20px; }
+.research-app .field label { font-size: 12px; }
+.research-app select { min-height: 44px; font-size: 14px; padding: 10px; border-color: var(--control-line); border-radius: 4px; }
+.research-app .suggestions { gap: 8px; margin-top: 20px; }
+.research-app .suggestions > span { font-size: 10px; letter-spacing: 1px; }
+.research-app .suggestions button { min-height: 44px; font-size: 12px; padding: 10px 12px; border-radius: 4px; gap: 12px; }
+.research-app .results-heading { margin-top: 32px; padding-bottom: 16px; }
+.research-app .results-heading h2 { font-size: 27px; }
+.research-app .results-heading > span { font-size: 11px; line-height: 1.6; }
+.research-app .welcome-state { padding: 28px 0 40px; gap: 20px; }
+.research-app .folio-number { font-size: 13px; }
+.research-app .welcome-state h3 { font-size: 25px; }
+.research-app .welcome-state p { font-size: 14px; line-height: 1.75; max-width: 58ch; }
+.research-app .welcome-notes { font-size: 12px; gap: 16px; margin-top: 20px; }
+.research-app .research-sidebar { display: block; background: #edf0e7; border: 1px solid var(--line); border-radius: 4px; padding: 24px; }
+.research-app .sidebar-heading > .eyebrow { font-size: 11px; }
+.research-app .collection-intro { font-size: 25px; line-height: 1.32; margin-block: 16px 24px; }
+.research-app .source-row { font-size: 14px; padding-block: 14px; gap: 12px; }
+.research-app .source-count { font-size: 11px; }
+.research-app .source-row small { font-size: 12px; }
+.research-app .coverage-note { font-size: 12px; line-height: 1.7; margin-top: 16px; }
+.research-app .source-detail-button { font-size: 13px; }
+.research-app .reading-note { margin-top: 24px; padding-top: 20px; }
+.research-app .reading-note .eyebrow { font-size: 10px; }
+.research-app .reading-note p { font-size: 12px; line-height: 1.75; }
+.research-app .evidence-hit { padding: 28px 0; animation: evidence-arrive 160ms ease-out both; }
+.research-app .hit-eyebrow { font-size: 12px; gap: 12px; letter-spacing: .15px; }
+.research-app .hit-number { font-size: 13px; }
+.research-app .hit-role { font-size: 11px; padding: 3px 7px; }
+.research-app .evidence-hit h3 { font-size: 26px; line-height: 1.35; margin-block: 12px; }
+.research-app .hit-anchor { font-size: 12px; gap: 12px; }
+.research-app .legal-status { color: #8d411e; }
+.research-app .hit-passage { font-size: 18px; line-height: 1.8; margin-block: 20px 12px; max-width: 78ch; }
+.research-app .hit-passage.collapsed { -webkit-line-clamp: 5; }
+.research-app .hit-footer { gap: 16px; }
+.research-app .provenance { font-size: 12px; margin-top: 12px; }
+.research-app .provenance summary { min-height: 44px; padding-block: 10px; }
+.research-app .provenance dl { grid-template-columns: 110px minmax(0, 1fr); font-size: 12px; padding: 16px; gap: 10px 16px; border-radius: 4px; }
+.research-app .provenance dd { font-size: 11px; line-height: 1.7; }
+.research-app .result-notice { font-size: 13px; line-height: 1.7; padding: 8px 14px; }
+.research-app .state-block { padding-block: 32px; }
+.research-app .state-block h3 { font-size: 27px; }
+.research-app .state-block p { font-size: 14px; line-height: 1.75; }
+.research-app .source-panel { margin: 0 0 32px; padding: 24px; background: var(--white); border: 1px solid var(--line); border-top: 2px solid var(--forest); }
+.research-app .source-panel h2 { font-size: 30px; }
+.research-app .source-panel > p { font-size: 14px; }
+.research-app .source-status-entry { grid-template-columns: 130px minmax(0, 1fr); }
+.research-app .source-status-entry h3 { font-size: 15px; }
+.research-app .source-status-entry dl { font-size: 13px; grid-template-columns: 150px minmax(0, 1fr); gap: 8px 16px; }
+.research-app .generation-line { font-size: 11px !important; }
+.research-app .research-help { margin-top: 40px; padding-top: 32px; }
+.research-app .research-help h2 { font-size: 30px; margin-top: 8px; }
+.research-app .research-help summary { min-height: 52px; font-size: 14px; padding-block: 16px; }
+.research-app .research-help details p { font-size: 14px; line-height: 1.8; max-width: 78ch; }
+.research-app .site-footer { padding-block: 24px 32px; margin-top: 40px; font-size: 12px; align-items: start; }
+.research-app .site-footer p { max-width: 57ch; line-height: 1.7; }
+.research-app .footer-brand { font-size: 15px; }
+.research-app .site-footer > a { min-height: 44px; display: inline-flex; align-items: start; padding-top: 3px; }
+.research-app :is(button, a, select, summary, .query-row) { transition: background-color 140ms ease-out, border-color 140ms ease-out, box-shadow 140ms ease-out; }
+@keyframes evidence-arrive { from { opacity: .35; } to { opacity: 1; } }
+
+@media (max-width: 1100px) {
+  .research-app .intro { gap: 40px; grid-template-columns: 1.3fr 1fr; }
+  .research-app .intro-copy { font-size: 15px; }
+  .research-app .scope-badges { gap: 8px 12px; }
+  .research-app .research-layout { gap: 28px; grid-template-columns: minmax(0, 1fr) 256px; }
+  .research-app .research-sidebar { padding: 20px; }
+}
+@media (max-width: 900px) {
+  .research-app :is(.site-header, main, .site-footer) { width: calc(100% - 64px); }
+  .research-app .intro { grid-template-columns: 1fr; gap: 24px; padding-block: 32px; }
+  .research-app .intro-support { padding: 0; }
+  .research-app .intro-copy { max-width: 62ch; font-size: 16px; }
+  .research-app .research-layout { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+  .research-app .query-row { display: flex; }
+  .research-app .submit-button { margin: 0; }
+  .research-app .research-sidebar { display: grid; grid-template-columns: 1fr 1fr; column-gap: 32px; padding: 24px; }
+  .research-app :is(.sidebar-heading, .collection-intro, .source-list, .coverage-note, .source-detail-button) { grid-column: 1; }
+  .research-app .reading-note { grid-column: 2; grid-row: 1 / 6; border-top: 0; border-left: 1px solid var(--line); margin: 0; padding: 0 0 0 24px; }
+  .research-app .header-nav { gap: 20px; }
+}
+@media (max-width: 600px) {
+  .research-app :is(.site-header, main, .site-footer) { width: calc(100% - 40px); }
+  .research-app .site-header { padding-block: 16px; gap: 12px; }
+  .research-app .header-nav { display: none; }
+  .research-app .brand { font-size: 28px; gap: 8px; }
+  .research-app .header-status { max-width: 176px; white-space: normal; text-align: left; font-size: 12px; padding: 8px; gap: 8px; }
+  .research-app .header-status > span:last-child { margin-left: 0; }
+  .research-app h1 { font-size: clamp(32px, 8.7vw, 44px); letter-spacing: -1.2px; margin-top: 16px; }
+  .research-app .intro { padding-block: 28px; gap: 20px; }
+  .research-app .intro-heading > .eyebrow { font-size: 10px; gap: 8px; letter-spacing: 1px; flex-wrap: wrap; }
+  .research-app .edition { font-size: 9px; margin-left: 4px; }
+  .research-app .small-rule { width: 20px; }
+  .research-app .intro-copy { font-size: 15px; line-height: 1.7; }
+  .research-app .scope-badges { margin-top: 16px; gap: 8px 10px; }
+  .research-app .scope-badges span { font-size: 11px; }
+  .research-app .scope-badges span + span::before { margin-right: 10px; }
+  .research-app .research-mode { font-size: 14px; }
+  .research-app .search-form { margin-top: 20px; }
+  .research-app .query-row { display: block; padding: 16px; }
+  .research-app textarea { font-size: 20px; min-height: 84px; }
+  .research-app textarea::placeholder { font-size: 19px; }
+  .research-app .submit-button { width: 100%; margin: 16px 0 0; justify-content: space-between; }
+  .research-app .query-footer { font-size: 11px; flex-wrap: wrap; }
+  .research-app .privacy-hint { font-size: 12px; }
+  .research-app .suggestions { gap: 8px; }
+  .research-app .suggestions > span { font-size: 10px; width: 100%; }
+  .research-app .suggestions button { font-size: 12px; }
+  .research-app .results-heading { gap: 12px; align-items: start; }
+  .research-app .results-heading h2 { font-size: 25px; }
+  .research-app .results-heading > span { font-size: 11px; max-width: 100px; }
+  .research-app .welcome-state { gap: 12px; }
+  .research-app .welcome-state h3 { font-size: 24px; }
+  .research-app .welcome-notes { gap: 8px 16px; }
+  .research-app .research-sidebar { display: block; padding: 20px; }
+  .research-app .reading-note { margin-top: 24px; border-left: 0; border-top: 1px solid var(--line); padding: 20px 0 0; }
+  .research-app .evidence-hit h3 { font-size: 25px; }
+  .research-app .hit-passage { font-size: 17px; line-height: 1.8; }
+  .research-app .hit-footer { align-items: start; flex-wrap: wrap; gap: 4px 16px; }
+  .research-app .provenance dl { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .research-app .provenance dd { margin-bottom: 12px; }
+  .research-app .provenance dd:last-child { margin-bottom: 0; }
+  .research-app .source-panel { padding: 20px; }
+  .research-app .source-status-entry { grid-template-columns: 1fr; gap: 12px; }
+  .research-app .source-status-entry dl { grid-template-columns: 1fr 1fr; font-size: 12px; }
+  .research-app .research-help h2 { font-size: 27px; }
+  .research-app .site-footer { display: block; }
+  .research-app .site-footer p { font-size: 12px; margin-block: 12px; }
+  .research-app .site-footer > a { font-size: 13px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .research-app *, .research-app *::before, .research-app *::after { animation: none !important; transition: none !important; }
+}

@@ -212,7 +212,7 @@
       entry.append(node('h3', '', sources[id]));
       const dl = node('dl');
       addDefinition(dl, 'Searchable documents', formatNumber.format(count));
-      addDefinition(dl, 'Last capture', dateLabel(item?.last_successful_sync));
+      addDefinition(dl, 'Last capture', dateLabel(item?.last_successful_capture || item?.last_successful_sync));
       addDefinition(dl, 'Last publication', dateLabel(item?.last_successful_publication));
       addDefinition(dl, 'Source coverage', count ? 'Archived evidence available' : 'Not admitted to this release');
       addDefinition(dl, 'Evidence role', id === 'tkdl' ? 'Institutional background' : 'Official archived evidence');
@@ -222,8 +222,8 @@
     }
     $('source-list').replaceChildren(sourceList);
     $('source-details').replaceChildren(details);
-    $('coverage-note').textContent = data.index_available ? `${formatNumber.format(total)} archived documents in the active searchable collection. India Code and TKDL certification remains pending.` : 'No active searchable index. Source certification is pending.';
-    $('source-summary').textContent = 'Counts describe the active searchable collection. Staged files and quarantined source candidates are not searchable evidence. Fresh synchronization is paused.';
+    $('coverage-note').textContent = data.index_available ? `${formatNumber.format(total)} archived documents. Each result includes its official source and capture details.` : 'The evidence collection is temporarily unavailable. Please check service status.';
+    $('source-summary').textContent = 'Explore archived IP India documents. India Code and TKDL are not included in this collection. The archive is not currently refreshing; legal status remains unknown.';
     $('generation-line').textContent = data.active_generation_id ? `Collection identifier: ${data.active_generation_id}` : 'No active collection is available.';
   }
   async function loadSources() {
