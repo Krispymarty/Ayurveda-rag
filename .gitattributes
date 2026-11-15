@@ -1,0 +1,2 @@
+# Preserve upstream font licence bytes, including their original whitespace.
+web/fonts/OFL-*.txt -whitespace

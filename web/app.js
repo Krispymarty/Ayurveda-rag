@@ -150,6 +150,11 @@
     for (let i = 0; i < 3; i += 1) loading.append(node('div', 'loading-line'));
     $('results').replaceChildren(loading);
     announce('Searching archived evidence.');
+    if ($('research-results')) {
+      $('edit-search').hidden = false;
+      $('results-title').focus({preventScroll: true});
+      $('research-results').scrollIntoView({block: 'start'});
+    }
     const params = new URLSearchParams({q: query, top_k: $('top-k').value});
     if ($('source-filter').value) params.set('source', $('source-filter').value);
     if ($('domain-filter').value) params.set('domain', $('domain-filter').value);
@@ -303,6 +308,25 @@
   $('close-sources').addEventListener('click', () => toggleSources(false));
   $('source-panel').addEventListener('keydown', (event) => { if (event.key === 'Escape') toggleSources(false); });
   $('retry-service').addEventListener('click', () => { checkHealth(); loadSources(); });
+  if ($('edit-search')) $('edit-search').addEventListener('click', () => {
+    $('question').scrollIntoView({block: 'center'});
+    $('question').focus({preventScroll: true});
+  });
+  const navLinks = [...document.querySelectorAll('#site-nav a[href^="#"]')];
+  if ('IntersectionObserver' in window) {
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        const target = entry.target.id === 'research-results' ? '#research' : `#${entry.target.id}`;
+        navLinks.forEach((link) => {
+          if (link.hash === target) link.setAttribute('aria-current', 'location');
+          else link.removeAttribute('aria-current');
+        });
+      }
+    }, {rootMargin: '-100px 0px -55% 0px', threshold: 0});
+    navLinks.forEach((link) => { const section = document.querySelector(link.hash); if (section) observer.observe(section); });
+    if ($('research-results')) observer.observe($('research-results'));
+  }
   checkHealth();
   loadSources();
 })();

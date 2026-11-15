@@ -21,7 +21,8 @@ class PublicUIBrowserTests(unittest.TestCase):
         output = root / "data/cloud_ui_20261114" / datetime.now(timezone.utc).strftime("run-%Y%m%dT%H%M%S%fZ")
         output.mkdir(parents=True, exist_ok=True)
         requests, errors, checks = [], [], []
-        phase = {"ready": False, "search": "hits"}
+        phase = {"ready": False, "search": "hits", "hold_search": False, "sources_available": True}
+        pending_search = []
         source = {"index_available": True, "active_generation_id": "synthetic-ui-fixture",
                   "sources": [{"source_id": "ipindia", "searchable_document_count": 2,
                                "last_successful_capture": "2026-10-01T00:00:00+00:00"},
@@ -43,9 +44,14 @@ class PublicUIBrowserTests(unittest.TestCase):
                         "readiness": {"state": "ready" if phase["ready"] else "initializing"}}
                 return route.fulfill(status=200 if phase["ready"] else 503, json=body)
             if path == "/sources":
+                if not phase["sources_available"]:
+                    return route.fulfill(status=503, json={"reason": "source_status_unavailable"})
                 return route.fulfill(json=source)
             if path.startswith("/search?"):
                 self.assertIn("top_k=5", path)
+                if phase["hold_search"]:
+                    pending_search.append(route)
+                    return None
                 if phase["search"] == "limited":
                     return route.fulfill(status=429, json={"reason": "rate_limit"})
                 if phase["search"] == "unavailable":
@@ -57,6 +63,9 @@ class PublicUIBrowserTests(unittest.TestCase):
                      "/assets/styles.css": ("styles.css", "text/css"),
                      "/assets/polish.css": ("polish.css", "text/css"),
                      "/assets/ayurveda.css": ("ayurveda.css", "text/css"),
+                     "/assets/brand-mark.svg": ("brand-mark.svg", "image/svg+xml"),
+                     "/assets/fonts/dm-sans-variable.ttf": ("fonts/dm-sans-variable.ttf", "font/ttf"),
+                     "/assets/fonts/instrument-serif-italic.ttf": ("fonts/instrument-serif-italic.ttf", "font/ttf"),
                      "/assets/images/ayurveda-botanical-hero.png": ("images/ayurveda-botanical-hero.png", "image/png"),
                      "/assets/favicon.svg": ("favicon.svg", "image/svg+xml")}
             if path in files:
@@ -76,7 +85,7 @@ class PublicUIBrowserTests(unittest.TestCase):
             page = context.new_page()
             page.on("pageerror", lambda error: errors.append(str(error)))
             page.goto("http://ayurip-ui.test/")
-            page.get_by_text("Preparing evidence search…", exact=True).wait_for()
+            page.get_by_text("Preparing evidence search…", exact=True).wait_for(state="attached")
             self.assertTrue(page.locator("#submit-button").is_disabled())
             page.locator("#question").fill("SYNTHETIC research question")
             phase["ready"] = True
@@ -93,9 +102,18 @@ class PublicUIBrowserTests(unittest.TestCase):
             checks.append("botanical asset loads; collection count uses API; topic fills without submitting")
             page.locator("#question").fill("SYNTHETIC research question")
             checks.append("initialization blocks search; recovery preserves input")
+            phase["hold_search"] = True
             page.locator("#submit-button").click()
+            page.wait_for_function("document.getElementById('results').getAttribute('aria-busy') === 'true'")
+            self.assertTrue(page.locator("#submit-button").is_disabled())
+            self.assertEqual(page.locator("#results .loading-line").count(), 3)
+            self.assertEqual(len(pending_search), 1)
+            phase["hold_search"] = False
+            pending_search.pop().fulfill(json={"hits": [hit, forged], "notice": "Synthetic browser fixture. Not legal evidence."})
             page.locator(".evidence-hit").first.wait_for()
             self.assertEqual(page.locator(".evidence-hit").count(), 2)
+            self.assertTrue(page.locator("#results-title").evaluate("e => e === document.activeElement"))
+            self.assertFalse(page.locator("#edit-search").is_hidden())
             self.assertEqual(page.locator("#results img").count(), 0)
             self.assertFalse(page.evaluate("Boolean(window.fixtureInjection)"))
             self.assertIn('<img src=x onerror="window.fixtureInjection=true">', page.locator(".hit-passage").first.inner_text())
@@ -115,6 +133,19 @@ class PublicUIBrowserTests(unittest.TestCase):
             page.locator("#source-panel-title").press("Escape")
             self.assertTrue(page.locator("#source-panel").is_hidden())
             checks.append("source panel keyboard recovery, archive details and supported filters work")
+            phase["sources_available"] = False
+            page.locator("[data-open-sources]").click()
+            page.wait_for_function("document.getElementById('archive-total').textContent === '—'")
+            self.assertIn("temporarily unavailable", page.locator("#coverage-note").inner_text())
+            page.locator("#close-sources").click()
+            phase["sources_available"] = True
+            page.locator("[data-open-sources]").click()
+            page.wait_for_function("document.getElementById('archive-total').textContent === '2'")
+            page.locator("#close-sources").click()
+            checks.append("loading skeleton is busy; missing source status never fabricates a collection count")
+            page.locator("#edit-search").click()
+            self.assertTrue(page.locator("#question").evaluate("e => e === document.activeElement"))
+            checks.append("search enters the results workspace; edit action restores query focus")
             page.screenshot(path=str(output / "synthetic-desktop.png"), full_page=True)
             page.set_viewport_size({"width": 390, "height": 844})
             page.locator("#nav-toggle").click()
