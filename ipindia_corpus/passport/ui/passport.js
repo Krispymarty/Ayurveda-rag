@@ -17,6 +17,8 @@
   let busy = false;
   let sessionPending = false;
   let sessionModel = null;
+  let sessionProvider = null;
+  let externalProcessing = false;
 
   const asText = (value, fallback = 'Not provided') => {
     if (typeof value === 'string' && value.trim()) return value;
@@ -63,6 +65,12 @@
       search_initialization_timeout: 'The readiness check exceeded its deadline and may still be finishing. Retry the connection later. Your form is still here.',
       search_dependency_unavailable: 'The local search service is unavailable. Start or restore it, then retry the connection. Your form is still here.',
       active_generation_changed: 'The searchable archive changed. Verify the expected generation, then restart only the private Passport server. Do not reset or change the corpus. Your form is still here.',
+      gemini_key_missing: 'The Gemini API key is not configured on the server. Configure GEMINI_API_KEY locally, then retry the connection. Do not enter an API key in this form.',
+      gemini_configuration_invalid: 'The Gemini provider configuration is invalid. Check the server Gemini key, model and provider settings, then retry. Your form is still here.',
+      provider_auth_failed: 'Google Gemini rejected the server credentials. Check the server API key and its permissions, then retry. Do not enter credentials in this form.',
+      provider_rate_limited: 'Google Gemini has limited these requests. Wait before trying again and check the configured API quota. Your form is still here.',
+      provider_model_unavailable: 'The selected Gemini model is unavailable to this API configuration. Check the server model setting and access, then retry.',
+      provider_model_changed: 'The provider model version changed. Verify the configured Gemini version before restarting the private Passport service. Your form is still here.',
     };
     return messages[reason] || 'Research resources are not ready. Retry the connection to check again. Your form is still here.';
   };
@@ -126,10 +134,17 @@
     try {
       const session = await requestJSON('/api/session', {}, 10000);
       sessionModel = session.model;
+      sessionProvider = session.provider && typeof session.provider === 'object' ? session.provider : null;
+      const remote = session.external_processing === true || (sessionProvider && sessionProvider.external_processing === true);
+      if (remote !== externalProcessing) byId('external-acknowledgment').checked = false;
+      externalProcessing = Boolean(remote);
+      byId('external-processing-notice').hidden = !externalProcessing;
+      byId('external-acknowledgment-row').hidden = !externalProcessing;
+      byId('external-acknowledgment').required = externalProcessing;
       csrfToken = typeof session.csrf_token === 'string' ? session.csrf_token : '';
       serviceReady = session.ready === true && csrfToken.length > 0;
       if (serviceReady) {
-        sessionStatus.textContent = 'Private session ready. Submit only non-confidential information.';
+        sessionStatus.textContent = externalProcessing ? 'Private session ready with Google Gemini. Review external processing and give consent before submitting.' : 'Private session ready. Submit only non-confidential information.';
       } else {
         sessionStatus.textContent = readinessMessage(session.reason);
         sessionStatus.parentElement.classList.add('unavailable');
@@ -301,8 +316,12 @@
     const model = data.model || sessionModel;
     if (typeof model === 'string') paragraph(metadata, `Research model: ${model}`);
     else if (model && typeof model === 'object') {
-      paragraph(metadata, `Research model: ${asText(model.name)}`);
-      if (typeof model.digest === 'string') paragraph(metadata, `Model digest: ${model.digest}`);
+      paragraph(metadata, `Research model: ${asText(model.name || model.model)}`);
+      if (typeof model.provider === 'string') paragraph(metadata, `Inference provider: ${model.provider}`);
+      const modelVersion = model.model_version || model.version;
+      if (typeof modelVersion === 'string') paragraph(metadata, `Provider model version: ${modelVersion}`);
+      const modelDigest = model.digest || model.model_digest;
+      if (typeof modelDigest === 'string') paragraph(metadata, `Model digest: ${modelDigest}`);
       if (typeof model.planner_version === 'string') paragraph(metadata, `Planner version: ${model.planner_version}`);
       if (Number.isInteger(model.calls_completed) && Number.isInteger(model.calls_attempted)) {
         paragraph(metadata, `Model calls completed / attempted: ${model.calls_completed} / ${model.calls_attempted}`);
@@ -370,6 +389,7 @@
       public_disclosure: byId('public-disclosure').value,
       additional_context: byId('additional-context').value.trim(),
       acknowledged_nonconfidential: byId('acknowledgment').checked,
+      acknowledged_external_processing: externalProcessing && byId('external-acknowledgment').checked,
     };
     busy = true;
     resultContent.replaceChildren();

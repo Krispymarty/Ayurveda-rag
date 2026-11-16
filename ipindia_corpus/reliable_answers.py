@@ -10,6 +10,7 @@ from .grounded_answers import NOTICE, _unique_object
 from .llm_experiment import ExperimentFailure, OllamaExperimentClient, timing_metadata
 from .request_policy import classify, VERSION as POLICY_VERSION
 from .span_selection import SYSTEM, VARIANT, build_plan, request_fields, resolve_selection
+from .inference import provider_identity
 
 MODEL = "qwen3.5:4b"
 DIGEST = "d8b0f5e9760cd1682034f292d7ef72ec46f432149be0df7574bf2d6e92e38c04"
@@ -38,14 +39,23 @@ Do not supply quotations, source identities, prose or new IDs. Current legal
 status and personal legal/medical advice cannot be established by these archives."""
 
 
-def configuration():
-    return {"model": MODEL, "model_digest": DIGEST, "profile": PROFILE,
+def configuration(provider=None):
+    result = {"model": MODEL, "model_digest": DIGEST, "profile": PROFILE,
             "policy_version": POLICY_VERSION, "selection_version": VARIANT + "-compact-minimal-v3",
             "verifier_version": VERIFIER_VERSION,
             "selection_system_sha256": hashlib.sha256(SELECTION_SYSTEM.encode()).hexdigest(),
             "verifier_system_sha256": hashlib.sha256(VERIFIER.encode()).hexdigest(),
             "max_evidence_utf8_bytes": 6500, "context_representation": "complete_text_compact_metadata",
             "keep_alive": "30m", "think": False}
+    if provider is not None:
+        identity = provider_identity(provider)
+        if identity['provider'] == 'gemini':
+            result.update(identity)
+            result.update(profile={"num_ctx": 4096, "num_predict": 200,
+                          "temperature": 0 if identity['model'].startswith('gemini-2.5-') else None},
+                          keep_alive=None, think='minimal', adapter_version='gemini-rest-v1',
+                          context_enforcement='countTokens_preflight_and_usage_recheck')
+    return result
 
 
 def compact_evidence(plan):
@@ -66,6 +76,11 @@ def selection_fields(question, plan):
 class SpanProvider:
     def __init__(self, client=None):
         self.client = client or OllamaExperimentClient(timeout=45)
+
+    @property
+    def metadata(self):
+        return {"provider": "ollama", "model": MODEL, "model_digest": DIGEST,
+                "model_version": None, "external_processing": False}
 
     def chat(self, fields):
         receipt = self.client.receipt(MODEL)
@@ -106,6 +121,9 @@ def answer(question, search_fn, verify_fn, *, provider=None, controlled_evidence
     result["model_calls_attempted"] = 0
 
     def finish(reason=None, status=None):
+        if provider is not None:
+            result['provider'] = provider_identity(provider)
+            result['candidate'] = configuration(provider)
         if reason:
             result["reason"] = reason
         if status:
@@ -199,7 +217,9 @@ def answer(question, search_fn, verify_fn, *, provider=None, controlled_evidence
         return finish()
     except ExperimentFailure as exc:
         reason = str(exc)
-        return finish(reason if reason in {"timeout", "model_digest_changed", "provider_incomplete_response", "evidence_context_limit"}
+        return finish(reason if reason in {"timeout", "model_digest_changed", "provider_incomplete_response", "evidence_context_limit",
+                      "provider_model_changed", "provider_rate_limited", "provider_auth_failed", "provider_model_unavailable",
+                      "provider_safety_blocked", "provider_invalid_selection", "gemini_key_missing", "gemini_configuration_invalid"}
                       else "provider_unavailable", "unavailable")
     except (ValueError, TypeError, KeyError, RecursionError):
         return finish("unverified_evidence_or_selection")

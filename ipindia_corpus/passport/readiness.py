@@ -3,7 +3,8 @@ import logging
 import threading
 import time
 
-from ..reliable_answers import MODEL
+from ..inference import configured_identity, provider_identity
+from ..llm_experiment import ExperimentFailure
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +19,7 @@ class EngineReadiness:
         self.next_retry = 0.0
         self.reason = None if engine else "search_dependency_unavailable"
         self.binding_failed = False
+        self.binding_reason = None
 
     def _expire(self):
         if self.pending and self.clock() - self.started >= 60:
@@ -44,7 +46,9 @@ class EngineReadiness:
         except Exception as exc:
             # Only an exception class is logged; no paths, settings, intake or text.
             logger.warning("Passport initialization failed (%s)", type(exc).__name__)
-            failure = "search_dependency_unavailable"
+            failure = (str(exc) if isinstance(exc, ExperimentFailure)
+                       and str(exc) in {"gemini_key_missing", "gemini_configuration_invalid"}
+                       else "search_dependency_unavailable")
         with self.lock:
             self._expire()
             if self.reason == "search_initialization_timeout":
@@ -66,18 +70,37 @@ class EngineReadiness:
         if engine is not None and not failed:
             try:
                 ready = engine.ready()
-                reason = None if ready else "active_generation_changed"
+                binding_reason = getattr(engine, "binding_reason", None)
+                reason = (None if ready else binding_reason
+                          if binding_reason in {"active_generation_changed", "provider_model_changed"}
+                          else "active_generation_changed")
                 if not ready:
                     with self.lock:
+                        if not self.binding_failed:
+                            self.binding_reason = reason
                         self.binding_failed = True
             except Exception:
                 reason = "search_dependency_unavailable"
         with self.lock:
-            # A simultaneous request may already have observed a generation change.
+            # Keep the first observed binding failure across concurrent requests.
             if self.binding_failed:
-                ready, reason = False, "active_generation_changed"
+                ready, reason = False, self.binding_reason or "active_generation_changed"
+        try:
+            identity = (provider_identity(getattr(engine, "provider", None))
+                        if engine is not None else configured_identity())
+        except (ValueError, ExperimentFailure):
+            ready, reason = False, "gemini_configuration_invalid"
+            identity = {"provider": "unavailable", "model": None,
+                        "model_version": None, "model_digest": None,
+                        "external_processing": False}
+        with self.lock:
+            # Identity inspection cannot erase a concurrently latched failure.
+            if self.binding_failed:
+                ready, reason = False, self.binding_reason or "active_generation_changed"
         return {"ready": ready, "reason": reason,
-                "generation_id": engine.gid if engine else None, "model": MODEL}
+                "generation_id": engine.gid if engine else None,
+                "model": identity.get("model"), "provider": identity,
+                "external_processing": identity.get("external_processing") is True}
 
     def available_engine(self):
         return self.engine if self.snapshot()["ready"] else None

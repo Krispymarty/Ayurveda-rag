@@ -27,7 +27,10 @@ COOKIE = "ayurip_passport"
 
 
 class PrivateBoundary:
-    def __init__(self, app, token):
+    def __init__(self, app, token, port=8003):
+        if type(port) is not int or port not in (8003, 18003):
+            raise ValueError('private_loopback_port_required')
+        self.port = port
         self.app, self.token = app, token
         self.buckets = ClientBuckets()
         self.gate = threading.BoundedSemaphore(1)
@@ -56,7 +59,8 @@ class PrivateBoundary:
             return [value for name, value in headers if name.lower() == key]
 
         hosts = values(b"host")
-        if len(hosts) != 1 or hosts[0].lower() not in {b"127.0.0.1:8003", b"localhost:8003"}:
+        allowed = {f'127.0.0.1:{self.port}'.encode(), f'localhost:{self.port}'.encode()}
+        if len(hosts) != 1 or hosts[0].lower() not in allowed:
             return await reject("private_host_required", 400)
         if any(name.lower() in {b"forwarded", b"x-real-ip", b"via"} or name.lower().startswith(b"x-forwarded-") for name, _ in headers):
             return await reject("proxy_headers_not_allowed")
@@ -94,7 +98,9 @@ class PrivateBoundary:
                 self.gate.release()
 
 
-def create_app(*, engine=None, enabled=None, readiness=None):
+def create_app(*, engine=None, enabled=None, readiness=None, port=8003):
+    if type(port) is not int or port not in (8003, 18003):
+        raise ValueError('private_loopback_port_required')
     if enabled is None:
         enabled = os.environ.get("AYURIP_PASSPORT_DEV") == "1"
     prefetch = os.environ.get("AYURIP_PASSPORT_PREFETCH") == "1"
@@ -111,7 +117,7 @@ def create_app(*, engine=None, enabled=None, readiness=None):
         return app
     token = secrets.token_urlsafe(32)
     configure_security(app)
-    app.add_middleware(PrivateBoundary, token=token)
+    app.add_middleware(PrivateBoundary, token=token, port=port)
     ui = Path(__file__).parent / "ui"
 
     @app.get("/", include_in_schema=False)

@@ -16,6 +16,7 @@ from ..llm_experiment import ExperimentFailure
 from ..private_preview import ArchiveVerifier
 from .. import reliable_answers as extracts
 from ..request_policy import UNSAFE, VERSION as REQUEST_POLICY_VERSION
+from ..inference import make_provider, provider_identity, provider_binding_valid, PROVIDER_FAILURES
 from ..sync_runner import ROOT
 
 VERSION = "passport-issues-v2-context-ids"
@@ -67,6 +68,7 @@ class Intake(BaseModel):
     public_disclosure: Literal["yes", "no", "unknown"] = "unknown"
     additional_context: str = Field(default="", max_length=400)
     acknowledged_nonconfidential: Literal[True]
+    acknowledged_external_processing: bool = False
 
     @model_validator(mode="after")
     def bounded_intake(self):
@@ -123,6 +125,10 @@ class CountingProvider:
         self.observations = []
         self.deadline = time.monotonic() + 90
 
+    @property
+    def metadata(self):
+        return provider_identity(self.provider)
+
     def chat(self, fields):
         if self.attempted >= 7 or time.monotonic() > self.deadline:
             raise ExperimentFailure("timeout")
@@ -131,12 +137,18 @@ class CountingProvider:
         observation = {"request_sha256": hashlib.sha256(extracts.canonical(fields)).hexdigest(), "completed": False}
         self.observations.append(observation)
         try:
-            result = self.provider.chat(fields)
+            bounded = getattr(self.provider, 'chat_with_deadline', None)
+            result = bounded(fields, self.deadline) if callable(bounded) else self.provider.chat(fields)
+            if time.monotonic() > self.deadline:
+                raise ExperimentFailure('timeout')
             self.completed += 1
             observation["completed"] = True
             # Timing metadata is numeric/bool only; no question, source or output.
             observation["provider_timing"] = {k: v for k, v in result[1].items() if type(v) in (int, float, bool)}
             return result
+        except ExperimentFailure as exc:
+            observation['failure_reason'] = str(exc) if str(exc) in PROVIDER_FAILURES else 'provider_unavailable'
+            raise
         finally:
             observation["elapsed_ms"] = round((time.monotonic() - started) * 1000, 3)
 
@@ -186,11 +198,12 @@ class PassportEngine:
             raise ValueError("invalid_prefetch_configuration")
         self.prefetch = prefetch
         self.search, self.verify = search, verify
-        self.provider = provider or extracts.SpanProvider()
         self.gid = search.status()["generation_id"]
         if getattr(verify, "gid", self.gid) != self.gid:
             raise ValueError("archive_generation_binding_changed")
+        self.provider = provider or make_provider()
         self.binding_failed = False
+        self.binding_reason = None
 
     @classmethod
     def connect(cls, root=ROOT, *, prefetch=False):
@@ -214,8 +227,12 @@ class PassportEngine:
     def ready(self):
         if self.binding_failed:
             return False
+        if not provider_binding_valid(self.provider):
+            self.binding_failed, self.binding_reason = True, 'provider_model_changed'
+            return False
         if self.search.status()["generation_id"] != self.gid:
             self.binding_failed = True
+            self.binding_reason = 'active_generation_changed'
         return not self.binding_failed
 
     def build(self, intake):
@@ -231,13 +248,18 @@ class PassportEngine:
                                                       "Investigate prior art and traditional-knowledge records through permitted official channels.",
                                                       "Discuss invention-specific questions and any disclosure with a registered patent professional; keep confidential details out of this prototype."],
                   "overall_status": "informational_evidence_only", "legal_relevance_review": "unreviewed",
-                  "generation_id": self.gid, "model": {"name": extracts.MODEL, "digest": extracts.DIGEST, "planner_version": VERSION},
+                  "generation_id": self.gid, "model": {"name": provider.metadata['model'],
+                     "digest": provider.metadata['model_digest'], "provider": provider.metadata['provider'],
+                     "model_version": provider.metadata['model_version'], "external_processing": provider.metadata['external_processing'],
+                     "planner_version": VERSION},
                   "request_policy_version": "passport-intake-scope-v2", "inherited_security_policy_version": REQUEST_POLICY_VERSION, "timings_ms": {},
-                  "performance": {"configuration": {**extracts.configuration(), "planner_version": VERSION,
+                  "performance": {"configuration": {**extracts.configuration(provider), "planner_version": VERSION,
                      "retrieval": "prefetch2-v1" if self.prefetch else "serial-v1", "topic_catalog_sha256": hashlib.sha256(extracts.canonical(TOPICS)).hexdigest()},
                      "issues": [], "model_requests": provider.observations}}
 
         def finish(status):
+            result['model'].update(model_version=provider.metadata['model_version'])
+            result['performance']['configuration'].update(extracts.configuration(provider))
             result["status"] = status
             result["model"].update(calls_attempted=provider.attempted, calls_completed=provider.completed)
             result["timings_ms"]["complete"] = round((time.monotonic() - started) * 1000, 2)
@@ -250,6 +272,10 @@ class PassportEngine:
         if blocked:
             result["unresolved_questions"].insert(0, "This request asks for unsafe instructions, medical guidance or current-law determinations outside this research flow. Describe the invention without those instructions.")
             return finish("blocked")
+        if provider.metadata['external_processing'] and not intake.acknowledged_external_processing:
+            result['reason'] = 'external_processing_consent_required'
+            result['unresolved_questions'].insert(0, 'Consent is required before sending this non-confidential intake and public evidence to Google Gemini.')
+            return finish('blocked')
         try:
             if not self.ready():
                 raise ValueError("active_generation_changed")
@@ -258,7 +284,7 @@ class PassportEngine:
             plan = parse_plan(raw, intake)
             result["timings_ms"]["issue_identification"] = round((time.monotonic() - step) * 1000, 2)
         except (ExperimentFailure, ValueError, TypeError, KeyError, requests.RequestException) as exc:
-            result["reason"] = str(exc) if isinstance(exc, ExperimentFailure) and str(exc) in {"timeout", "provider_incomplete_response", "evidence_context_limit", "model_digest_changed"} else "issue_identification_unavailable"
+            result["reason"] = str(exc) if isinstance(exc, ExperimentFailure) and str(exc) in PROVIDER_FAILURES else "issue_identification_unavailable"
             result["unresolved_questions"].insert(0, "Issue identification is unavailable or returned an invalid plan. No model-generated legal conclusion was accepted.")
             return finish("unavailable")
         if plan["needs_clarification"] or intake.novelty == "unsure":
@@ -330,6 +356,7 @@ class PassportEngine:
                 self.verify(hit, self.gid)
         except Exception:
             result["verified_evidence"] = []
+            result['reason'] = self.binding_reason or 'archive_verification_failed'
             for issue in result["issues"]:
                 issue.update(evidence_ids=[], evidence_status="dependency_unavailable")
             result["unresolved_questions"].insert(0, "The active search binding changed or became unavailable. No passport evidence was released.")
