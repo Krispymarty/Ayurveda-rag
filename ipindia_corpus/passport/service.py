@@ -16,7 +16,8 @@ from ..llm_experiment import ExperimentFailure
 from ..private_preview import ArchiveVerifier
 from .. import reliable_answers as extracts
 from ..request_policy import UNSAFE, VERSION as REQUEST_POLICY_VERSION
-from ..inference import make_provider, provider_identity, provider_binding_valid, PROVIDER_FAILURES
+from ..inference import make_provider, provider_identity, provider_binding_valid, read_setting, PROVIDER_FAILURES
+from .failover import Circuit, RequestBudget, FALLBACK_REASONS
 from ..sync_runner import ROOT
 
 VERSION = "passport-issues-v2-context-ids"
@@ -119,19 +120,19 @@ class PublishedVerifier(ArchiveVerifier):
 
 
 class CountingProvider:
-    def __init__(self, provider):
+    def __init__(self, provider, *, budget=None, deadline=None):
         self.provider = provider
         self.attempted = self.completed = 0
         self.observations = []
-        self.deadline = time.monotonic() + 90
+        self.budget = budget or RequestBudget(clock=time.monotonic)
+        self.deadline = min(self.budget.deadline, deadline) if deadline is not None else self.budget.deadline
 
     @property
     def metadata(self):
         return provider_identity(self.provider)
 
     def chat(self, fields):
-        if self.attempted >= 7 or time.monotonic() > self.deadline:
-            raise ExperimentFailure("timeout")
+        self.budget.claim(deadline=self.deadline)
         self.attempted += 1
         started = time.monotonic()
         observation = {"request_sha256": hashlib.sha256(extracts.canonical(fields)).hexdigest(), "completed": False}
@@ -139,7 +140,7 @@ class CountingProvider:
         try:
             bounded = getattr(self.provider, 'chat_with_deadline', None)
             result = bounded(fields, self.deadline) if callable(bounded) else self.provider.chat(fields)
-            if time.monotonic() > self.deadline:
+            if self.budget.clock() >= self.deadline:
                 raise ExperimentFailure('timeout')
             self.completed += 1
             observation["completed"] = True
@@ -193,7 +194,7 @@ def parse_plan(raw, intake):
 
 
 class PassportEngine:
-    def __init__(self, search, verify, *, provider=None, prefetch=False):
+    def __init__(self, search, verify, *, provider=None, prefetch=False, fallback_provider=None, clock=None):
         if type(prefetch) is not bool:
             raise ValueError("invalid_prefetch_configuration")
         self.prefetch = prefetch
@@ -202,6 +203,15 @@ class PassportEngine:
         if getattr(verify, "gid", self.gid) != self.gid:
             raise ValueError("archive_generation_binding_changed")
         self.provider = provider or make_provider()
+        self.fallback_provider = fallback_provider
+        if fallback_provider is not None:
+            identity = provider_identity(fallback_provider)
+            if (provider_identity(self.provider)['provider'] != 'gemini'
+                    or identity['provider'] != 'ollama' or identity['model'] != extracts.MODEL
+                    or identity['model_digest'] != extracts.DIGEST or identity['external_processing'] is not False):
+                raise ValueError('pinned_local_fallback_required')
+        self.clock = clock or (lambda: time.monotonic())
+        self.circuit = Circuit(clock=self.clock)
         self.binding_failed = False
         self.binding_reason = None
 
@@ -209,10 +219,15 @@ class PassportEngine:
     def connect(cls, root=ROOT, *, prefetch=False):
         search = LocalSearch()
         gid = search.status()["generation_id"]
-        return cls(search, PublishedVerifier(root, gid), prefetch=prefetch)
+        provider = make_provider()
+        setting = read_setting('AYURIP_QWEN_FALLBACK', '1')
+        if setting not in {'0', '1'}:
+            raise ValueError('invalid_fallback_configuration')
+        fallback = make_provider('ollama') if setting == '1' and provider_identity(provider)['provider'] == 'gemini' else None
+        return cls(search, PublishedVerifier(root, gid), provider=provider, prefetch=prefetch, fallback_provider=fallback)
 
-    def _prepare(self, issues):
-        fetch = getattr(self.search, "independent_query", self.search)
+    def _prepare(self, issues, search_fn=None):
+        fetch = search_fn or getattr(self.search, "independent_query", self.search)
         prepared = {}
         with ThreadPoolExecutor(max_workers=2, thread_name_prefix="passport-search") as pool:
             futures = [(issue["topic_id"], pool.submit(fetch, TOPICS[issue["topic_id"]][2], top_k=5)) for issue in issues]
@@ -235,9 +250,114 @@ class PassportEngine:
             self.binding_reason = 'active_generation_changed'
         return not self.binding_failed
 
+    @staticmethod
+    def _blocked(intake):
+        content = unicodedata.normalize("NFKC", "\n".join([intake.description, intake.ingredients, intake.additional_context]))
+        return INJECTION.search(content) or UNSAFE.search(content) or MEDICAL.search(content) or LEGAL_STATUS.search(content)
+
+    @staticmethod
+    def _failed_reasons(result):
+        reasons = [r['failure_reason'] for r in result['performance']['model_requests'] if r.get('failure_reason')]
+        reasons.extend(i['reason'] for i in result['performance']['issues'] if i.get('reason'))
+        if result.get('reason'):
+            reasons.append(result['reason'])
+        return reasons
+
+    @staticmethod
+    def _clear_failed_attempt(result, reason):
+        result.update(status='unavailable', reason=reason, verified_evidence=[])
+        for issue in result['issues']:
+            issue.update(evidence_ids=[], evidence_status='dependency_unavailable')
+        return result
+
     def build(self, intake):
+        """At most two attempts of seven calls each; one 90-second deadline."""
+        from copy import deepcopy
+        budget = RequestBudget(clock=self.clock)
+        attempts, responses = [], {}
+        primary = CountingProvider(self.provider, budget=budget,
+            deadline=budget.started + 30 if self.fallback_provider is not None else None)
+
+        def search(question, top_k=5):
+            key = (question, top_k)
+            if key not in responses:
+                fetch = getattr(self.search, 'independent_query', self.search) if self.prefetch else self.search
+                responses[key] = deepcopy(fetch(question, top_k=top_k))
+            return deepcopy(responses[key])
+
+        def record(result, counted, discarded=False):
+            attempts.append({'provider': counted.metadata['provider'], 'model': counted.metadata['model'],
+                'status': result['status'], 'reason': result.get('reason'), 'discarded': discarded,
+                'calls_attempted': counted.attempted, 'calls_completed': counted.completed,
+                'elapsed_ms': result['timings_ms']['complete']})
+
+        def finish(result, trigger=None, used=False):
+            if result['status'] != 'blocked':
+                try:
+                    bound = self.ready()
+                    if used and not provider_binding_valid(self.fallback_provider):
+                        self._clear_failed_attempt(result, 'provider_model_changed')
+                    elif not bound:
+                        self._clear_failed_attempt(result, self.binding_reason or 'active_generation_changed')
+                except Exception:
+                    self._clear_failed_attempt(result, 'search_dependency_unavailable')
+            if result['status'] != 'blocked' and self.clock() >= budget.deadline:
+                self._clear_failed_attempt(result, 'timeout')
+            if result['status'] == 'unavailable' and attempts and attempts[-1]['status'] != 'unavailable':
+                attempts[-1].update(status='unavailable', reason=result.get('reason'), discarded=True)
+            result['routing'] = {'version': 'gemini-qwen-failover-v1', 'primary': provider_identity(self.provider),
+                'fallback_configured': self.fallback_provider is not None, 'fallback_used': used,
+                'trigger': trigger, 'attempts': attempts,
+                'calls_attempted_total': sum(a['calls_attempted'] for a in attempts),
+                'external_processing_attempted': any(a['provider'] == 'gemini' and a['calls_attempted'] for a in attempts),
+                'circuit': self.circuit.snapshot()}
+            result['timings_ms']['complete'] = round((self.clock() - budget.started) * 1000, 2)
+            return result
+
+        skip = (self.fallback_provider is not None and self.circuit.skip_primary()
+                and not self._blocked(intake) and intake.acknowledged_external_processing and self.ready())
+        if not skip:
+            result = self._build_once(intake, primary, search)
+            if result['status'] != 'blocked' and self.clock() >= primary.deadline:
+                failures = self._failed_reasons(result)
+                # A deadline cannot turn an integrity/policy/quality rejection
+                # into a transient failure eligible for another model.
+                cause = next((r for r in failures if r not in FALLBACK_REASONS),
+                             failures[0] if failures else 'timeout')
+                self._clear_failed_attempt(result, cause)
+            reasons = self._failed_reasons(result)
+            trigger = next((r for r in reasons if r in FALLBACK_REASONS), None)
+            if self.fallback_provider is None or not trigger or any(r not in FALLBACK_REASONS for r in reasons):
+                record(result, primary)
+                if not any(o.get('failure_reason') for o in primary.observations) and primary.completed:
+                    self.circuit.success()
+                return finish(result)
+            self.circuit.failure(trigger)
+            self._clear_failed_attempt(result, trigger)
+            record(result, primary, discarded=True)
+        else:
+            trigger = 'provider_circuit_open'
+            # Common policy, consent and binding gates above ran before skipping.
+            result = None
+        if (self.clock() >= budget.deadline
+                or not self.ready() or not provider_binding_valid(self.fallback_provider)):
+            if result is None:
+                # Do not start a model call merely to construct an error response.
+                result = self._build_once(intake, CountingProvider(self.fallback_provider, budget=budget, deadline=budget.started), search)
+            self._clear_failed_attempt(result, self.binding_reason or 'fallback_budget_or_binding_unavailable')
+            return finish(result, trigger)
+        fallback = CountingProvider(self.fallback_provider,
+            budget=RequestBudget(clock=self.clock, deadline=budget.deadline))
+        candidate = self._build_once(intake, fallback, search)
+        failures = [r for r in self._failed_reasons(candidate) if r not in {
+            'insufficient_relevant_evidence', 'insufficient_trusted_evidence', 'insufficient_evidence'}]
+        if candidate['status'] == 'unavailable' or failures:
+            self._clear_failed_attempt(candidate, candidate.get('reason') or (failures[0] if failures else 'fallback_unavailable'))
+        record(candidate, fallback, discarded=candidate['status'] == 'unavailable')
+        return finish(candidate, trigger, used=fallback.attempted > 0)
+
+    def _build_once(self, intake, provider, search_fn=None):
         started = time.monotonic()
-        provider = CountingProvider(self.provider)
         result = {"status": "partial", "invention_summary": intake.description,
                   "jurisdiction": "India", "scope": "Patent and traditional-knowledge questions using archived IP India patent passages",
                   "issues": [], "verified_evidence": [], "unsupported_domains": UNSUPPORTED,
@@ -266,8 +386,7 @@ class PassportEngine:
             return result
 
         step = time.monotonic()
-        content = unicodedata.normalize("NFKC", "\n".join([intake.description, intake.ingredients, intake.additional_context]))
-        blocked = INJECTION.search(content) or UNSAFE.search(content) or MEDICAL.search(content) or LEGAL_STATUS.search(content)
+        blocked = self._blocked(intake)
         result["timings_ms"]["intake_policy"] = round((time.monotonic() - step) * 1000, 3)
         if blocked:
             result["unresolved_questions"].insert(0, "This request asks for unsafe instructions, medical guidance or current-law determinations outside this research flow. Describe the invention without those instructions.")
@@ -296,7 +415,7 @@ class PassportEngine:
         prepared = None
         if self.prefetch:
             step = time.monotonic()
-            prepared = self._prepare(plan["issues"])
+            prepared = self._prepare(plan["issues"], search_fn)
             result["timings_ms"]["prefetch"] = round((time.monotonic() - step) * 1000, 3)
         index, released_hits = {}, {}
         for hypothesis in plan["issues"]:
@@ -314,7 +433,7 @@ class PassportEngine:
                     if isinstance(response, Exception):
                         raise response
                 else:
-                    response = self.search(q, top_k=top_k)
+                    response = (search_fn or self.search)(q, top_k=top_k)
                 if response.get("generation_id") != self.gid or response.get("ranking_version") != "v2":
                     raise ValueError("protected_retrieval_binding_changed")
                 for h in response["hits"]:
@@ -325,12 +444,15 @@ class PassportEngine:
             step = time.monotonic()
             selected = extracts.answer(question, search, self.verify, provider=provider)
             result["performance"]["issues"].append({"topic_id": key, "timings_ms": selected.get("timings_ms", {}),
-                       "model_calls_attempted": selected.get("model_calls_attempted", 0), "status": selected["status"]})
+                       "model_calls_attempted": selected.get("model_calls_attempted", 0), "status": selected["status"],
+                       "reason": selected.get('reason')})
             result["timings_ms"][key] = round((time.monotonic() - step) * 1000, 2)
             if selected["status"] != "answered":
                 issue["evidence_status"] = "dependency_unavailable" if selected["status"] == "unavailable" else "selection_rejected" if selected.get("retrieval_evidence") else "not_found"
                 issue["limitations"].append("No verified extract was accepted: " + (selected.get("reason") or "insufficient_evidence"))
                 result["unresolved_questions"].append(title + ": no verified excerpt was accepted; check the official material separately.")
+                if self.fallback_provider is not None and selected.get('reason') in FALLBACK_REASONS:
+                    break
                 continue
             for claim in selected["claims"]:
                 for citation in claim["citations"]:

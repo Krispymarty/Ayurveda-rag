@@ -3,7 +3,9 @@
 The private Passport now defaults to the Gemini API. Public evidence search still
 uses the accepted PostgreSQL/pgvector index and local pinned E5 embedding model.
 Public `/answer` remains blocked. Historical local-model experiments and the
-pinned Qwen adapter remain available for explicit rollback.
+pinned Qwen adapter remain available for explicit rollback. Private Passport
+requests may also use one bounded Qwen fallback attempt for temporary Gemini
+availability failures.
 
 ## Configuration
 
@@ -14,6 +16,7 @@ database settings. Never put an API key in JavaScript, Git, a screenshot or chat
 AYURIP_LLM_PROVIDER=gemini
 AYURIP_GEMINI_MODEL=gemini-3.5-flash-lite
 GEMINI_API_KEY=your_private_key
+AYURIP_QWEN_FALLBACK=1
 ```
 
 Process environment settings take precedence over the project `.env`. The key
@@ -40,7 +43,10 @@ Google remains subject to the API account's applicable terms and settings.
 ## Evidence and inference controls
 
 - Existing planner, serial topic retrieval, span selection and subset verifier.
-- Maximum three topics, seven model calls and four selected spans per pass.
+- Maximum three topics and four selected spans per pass. Each provider attempt
+  has at most seven model calls; Gemini's external-call allowance is unchanged.
+  One fresh local fallback may add up to seven calls (14 total maximum), under
+  the same original 90-second acceptance deadline.
 - Original prompts, source verification, copied quotations and official citations.
 - Application context budget 4,096 tokens: Gemini `countTokens` checks input
   at 3,800 tokens; generation reserves 200 output tokens and a 96-token margin.
@@ -49,7 +55,7 @@ Google remains subject to the API account's applicable terms and settings.
   The adapter requests minimal thinking and does not pretend this is temperature
   zero. The explicit 2.5-family option retains temperature zero and no thinking.
 - Only the official HTTPS Gemini endpoint; key in a header, no redirects,
-  environment proxies, automatic provider fallback, tool execution or retries.
+  environment proxies, tool execution or retries inside the provider adapter.
 - Hosted model IDs and returned `modelVersion` are recorded. There is no invented
   weights digest. A version change latches failure, invalidates readiness and
   removes all evidence from a partly built Passport.
@@ -58,6 +64,48 @@ Google remains subject to the API account's applicable terms and settings.
 
 The adapter uses the existing `requests` dependency; no AI framework or model
 download is needed. See `ipindia_corpus/inference.py`.
+
+## Automatic private fallback
+
+`AYURIP_QWEN_FALLBACK=1` enables request-level fallback for Gemini timeouts,
+rate limits, connection failures and temporary server failures. It is enabled
+by default for the connected private Passport, and ignored for explicit local
+operation. Set `AYURIP_QWEN_FALLBACK=0` and restart only the private service to
+disable it. Injected evaluation providers do not acquire fallback implicitly.
+
+The Gemini attempt has a 30-second acceptance subdeadline when fallback is
+configured. Only one fresh Qwen attempt is allowed; it restarts planning,
+selection and verification and receives the remainder of the original 90-second
+deadline. Partial Gemini output is discarded. Repeated topic searches reuse only
+the same request's copied retrieval snapshot; archive checks run again. Both
+providers retain the original prompts, context, output caps and pinned bindings.
+
+Authentication/configuration errors, TLS/redirect rejection, safety blocks,
+malformed output, source/model binding changes, missing evidence and legitimate
+abstention do not trigger fallback. Deterministic post-selection checks reject
+missing explicitly requested multiple sections/rules without using benchmark
+labels. All legal statuses remain unknown.
+
+After three consecutive transient Gemini failures, new primary attempts pause
+for 30 seconds; a rate limit pauses them for 60 seconds. A later successful
+primary attempt resets the circuit. These controls are process-local and do not
+bypass provider quotas. Consent and intake policy still apply while paused.
+
+The installed Ollama service must be reachable at its validated loopback endpoint
+with the exact pinned `qwen3.5:4b` digest. Its receipt is verified on each model
+call. Missing or changed local models fail closed; nothing is downloaded. Health
+reports fallback as configured and checked on use, rather than claiming it is
+continuously available.
+
+Responses identify the actual model, sanitized routing attempts and whether
+Gemini processing was attempted before local fallback. A local final result does
+not imply the entire request stayed local. Ordinary requests do not retain intake
+or completion logs. Late results, including late final archive checks, are
+discarded. Synchronous socket/filesystem work is not hard process cancellation;
+the five-second complete-answer target remains unproven for fallback.
+
+This remains an experimental private research flow. No new public-answer,
+independent legal-accuracy or three-source certification is implied.
 
 ## Performance and regression checks
 

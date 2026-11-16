@@ -314,6 +314,14 @@
     paragraph(metadata, `Corpus generation: ${asText(data.generation_id, 'Not supplied')}`);
     paragraph(metadata, 'Overall status: informational evidence only · Legal relevance review: unreviewed');
     const model = data.model || sessionModel;
+    if (data.routing && data.routing.fallback_used === true) {
+      paragraph(metadata, data.status === 'unavailable'
+        ? 'Gemini was temporarily unavailable, and the local Qwen fallback could not complete this request.'
+        : 'Gemini was temporarily unavailable. This result used the local Qwen fallback.');
+      if (data.routing.external_processing_attempted === true) {
+        paragraph(metadata, 'Gemini was attempted before local fallback; this request was not processed exclusively on this computer.');
+      }
+    }
     if (typeof model === 'string') paragraph(metadata, `Research model: ${model}`);
     else if (model && typeof model === 'object') {
       paragraph(metadata, `Research model: ${asText(model.name || model.model)}`);

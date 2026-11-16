@@ -64,13 +64,17 @@ def _safe_response(response):
 class OllamaExperimentClient:
     """Bounded native loopback transport; no redirects, proxy or remote endpoints."""
 
-    def __init__(self, endpoint="http://127.0.0.1:11434", *, timeout=120, session=None):
+    def __init__(self, endpoint="http://127.0.0.1:11434", *, timeout=120, session=None, absolute_deadline=None):
         self.endpoint = validate_endpoint(endpoint)
         if "host.docker.internal" in self.endpoint:
             raise ValueError("native_loopback_endpoint_required")
         if type(timeout) is not int or not 1 <= timeout <= 120:
             raise ValueError("experimental_timeout_must_be_1_to_120_seconds")
+        if absolute_deadline is not None and (type(absolute_deadline) not in (int, float)
+                or not math.isfinite(absolute_deadline) or absolute_deadline < 0):
+            raise ValueError("invalid_absolute_deadline")
         self.timeout = timeout
+        self.absolute_deadline = absolute_deadline
         self.session = session or requests.Session()
         self.session.trust_env = False
 
@@ -80,10 +84,17 @@ class OllamaExperimentClient:
             raise ValueError("experiment_endpoint_not_allowed")
         started = time.monotonic()
         deadline = started + self.timeout
+        if self.absolute_deadline is not None:
+            deadline = min(deadline, self.absolute_deadline)
+        remaining = deadline - started
+        if remaining <= 0:
+            raise ExperimentFailure("timeout")
         response = None
         try:
             response = self.session.request(method, self.endpoint + path, json=payload, stream=True,
-                                            allow_redirects=False, timeout=(min(10, self.timeout), self.timeout))
+                                            allow_redirects=False, timeout=(min(10, remaining), remaining))
+            if time.monotonic() >= deadline:
+                raise ExperimentFailure("timeout")
             if response.status_code != 200:
                 raise ExperimentFailure("http_request_failed")
             raw = bytearray()
@@ -91,7 +102,7 @@ class OllamaExperimentClient:
             ttft_content_ms, ttft_any_ms = None, None
             if streaming:
                 for line in response.iter_lines():
-                    if time.monotonic() > deadline:
+                    if time.monotonic() >= deadline:
                         raise ExperimentFailure("timeout")
                     if not line:
                         continue
@@ -123,12 +134,16 @@ class OllamaExperimentClient:
                 parsed["message"]["thinking_characters"] = thinking_chars
             else:
                 for block in response.iter_content(chunk_size=1024):
-                    if time.monotonic() > deadline:
+                    if time.monotonic() >= deadline:
                         raise ExperimentFailure("timeout")
                     raw.extend(block)
                     if len(raw) > MAX_RESPONSE_BYTES:
                         raise ExperimentFailure("response_too_large")
                 parsed = _safe_response(json.loads(raw))
+            # A final body/EOF can arrive after the last yielded block. Never
+            # accept that output, even when its JSON and model IDs are valid.
+            if time.monotonic() >= deadline:
+                raise ExperimentFailure("timeout")
             if not isinstance(parsed, dict) or parsed.get("error"):
                 raise ExperimentFailure("invalid_model_response")
             return {"response": parsed, "response_bytes_sha256": sha256(bytes(raw)),

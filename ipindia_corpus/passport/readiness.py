@@ -3,7 +3,7 @@ import logging
 import threading
 import time
 
-from ..inference import configured_identity, provider_identity
+from ..inference import configured_identity, provider_identity, provider_binding_valid
 from ..llm_experiment import ExperimentFailure
 
 logger = logging.getLogger(__name__)
@@ -97,10 +97,17 @@ class EngineReadiness:
             # Identity inspection cannot erase a concurrently latched failure.
             if self.binding_failed:
                 ready, reason = False, self.binding_reason or "active_generation_changed"
+        fallback = getattr(engine, 'fallback_provider', None) if engine is not None else None
+        circuit = getattr(engine, 'circuit', None) if engine is not None else None
         return {"ready": ready, "reason": reason,
                 "generation_id": engine.gid if engine else None,
                 "model": identity.get("model"), "provider": identity,
-                "external_processing": identity.get("external_processing") is True}
+                "external_processing": identity.get("external_processing") is True,
+                "fallback": {"configured": fallback is not None,
+                             "provider": provider_identity(fallback) if fallback is not None else None,
+                             "availability": ("binding_failed" if fallback is not None and not provider_binding_valid(fallback)
+                                              else "checked_on_use" if fallback is not None else "disabled"),
+                             "circuit": circuit.snapshot() if circuit is not None else None}}
 
     def available_engine(self):
         return self.engine if self.snapshot()["ready"] else None

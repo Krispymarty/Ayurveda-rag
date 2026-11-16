@@ -2,7 +2,8 @@
 
 The application supplies the same messages/schema to either provider. Gemini has
 no locally verifiable weights digest: its returned modelVersion is recorded and
-latched for the life of this instance instead. No automatic provider fallback.
+latched for the life of this instance instead. Passport owns request-level
+fallback; individual provider calls never silently switch models.
 """
 from __future__ import annotations
 
@@ -30,6 +31,7 @@ PROVIDER_FAILURES = frozenset({'timeout', 'model_digest_changed', 'provider_inco
     'evidence_context_limit', 'provider_model_changed', 'provider_rate_limited', 'provider_auth_failed',
     'provider_model_unavailable', 'provider_safety_blocked', 'provider_invalid_selection',
     'provider_invalid_response', 'provider_unavailable', 'provider_response_too_large',
+    'provider_request_rejected', 'provider_redirect_rejected', 'provider_tls_failed',
     'gemini_key_missing', 'gemini_configuration_invalid'})
 
 
@@ -40,7 +42,7 @@ def _file_settings(root=ROOT):
         return {}
     keys = {}
     for line in path.read_text(encoding='utf-8-sig').splitlines():
-        match = re.fullmatch(r'\s*(?:export\s+)?(GEMINI_API_KEY|GOOGLE_API_KEY|AYURIP_LLM_PROVIDER|AYURIP_GEMINI_MODEL)\s*=\s*(.*?)\s*', line)
+        match = re.fullmatch(r'\s*(?:export\s+)?(GEMINI_API_KEY|GOOGLE_API_KEY|AYURIP_LLM_PROVIDER|AYURIP_GEMINI_MODEL|AYURIP_QWEN_FALLBACK)\s*=\s*(.*?)\s*', line)
         if match:
             name, value = match.groups()
             if value.startswith(('\"', "'")):
@@ -66,7 +68,9 @@ def read_api_key(root=ROOT):
 
 
 def read_setting(name, default):
-    return os.environ.get(name, _file_settings().get(name, default))
+    if name in os.environ:
+        return os.environ[name]
+    return _file_settings().get(name, default)
 
 
 def configured_identity():
@@ -177,7 +181,9 @@ class GeminiProvider:
                 reason = ('provider_redirect_rejected' if 300 <= status < 400 else
                           'provider_auth_failed' if status in (401, 403) else
                           'provider_rate_limited' if status == 429 else
-                          'provider_model_unavailable' if status == 404 else 'provider_unavailable')
+                          'provider_model_unavailable' if status == 404 else
+                          'timeout' if status == 408 else
+                          'provider_unavailable' if 500 <= status < 600 else 'provider_request_rejected')
                 raise ExperimentFailure(reason)
             raw = bytearray()
             for block in response.iter_content(chunk_size=1024):
@@ -192,8 +198,12 @@ class GeminiProvider:
             return value, (time.monotonic() - started) * 1000
         except requests.Timeout:
             raise ExperimentFailure('timeout') from None
-        except (requests.RequestException, ValueError, TypeError, RecursionError):
+        except requests.exceptions.SSLError:
+            raise ExperimentFailure('provider_tls_failed') from None
+        except requests.RequestException:
             raise ExperimentFailure('provider_unavailable') from None
+        except (ValueError, TypeError, RecursionError):
+            raise ExperimentFailure('provider_invalid_response') from None
         finally:
             if response is not None:
                 response.close()

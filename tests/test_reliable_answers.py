@@ -78,6 +78,16 @@ class AnswerCandidateTests(unittest.TestCase):
         self.assertEqual(fields["format"]["properties"]["span_ids"]["items"]["enum"], ["S001"])
         self.assertEqual(len(plan["schema"]["properties"]["span_ids"]["items"]["enum"]), 2)
 
+    def test_missing_explicit_provision_after_selection_releases_no_partial_claims(self):
+        evidence = [{**hit(), 'section': '48'}, {**hit('other'), 'section': '53'}]
+        for ids, status in [(['S001'], 'abstained'), (['S001', 'S002'], 'answered')]:
+            raw = json.dumps({'span_ids': ids})
+            result = self.run_answer(Provider([raw, raw]), question='Quote archived sections 48 and 53', hits=evidence)
+            self.assertEqual(result['status'], status)
+            if status == 'abstained':
+                self.assertEqual(result['reason'], 'incomplete_requested_provisions')
+                self.assertFalse(result['claims'])
+
     def test_provider_rejects_changed_model_truncation_and_context_overflow(self):
         class Client:
             digest = DIGEST

@@ -43,6 +43,7 @@ def configuration(provider=None):
     result = {"model": MODEL, "model_digest": DIGEST, "profile": PROFILE,
             "policy_version": POLICY_VERSION, "selection_version": VARIANT + "-compact-minimal-v3",
             "verifier_version": VERIFIER_VERSION,
+            "completeness_guard_version": "explicit-provision-coverage-v1",
             "selection_system_sha256": hashlib.sha256(SELECTION_SYSTEM.encode()).hexdigest(),
             "verifier_system_sha256": hashlib.sha256(VERIFIER.encode()).hexdigest(),
             "max_evidence_utf8_bytes": 6500, "context_representation": "complete_text_compact_metadata",
@@ -76,6 +77,7 @@ def selection_fields(question, plan):
 class SpanProvider:
     def __init__(self, client=None):
         self.client = client or OllamaExperimentClient(timeout=45)
+        self.failed_binding = False
 
     @property
     def metadata(self):
@@ -83,12 +85,30 @@ class SpanProvider:
                 "model_version": None, "external_processing": False}
 
     def chat(self, fields):
-        receipt = self.client.receipt(MODEL)
+        return self._chat(fields, self.client)
+
+    def chat_with_deadline(self, fields, deadline):
+        if time.monotonic() >= deadline:
+            raise ExperimentFailure('timeout')
+        client = self.client
+        if isinstance(client, OllamaExperimentClient):
+            client = OllamaExperimentClient(endpoint=client.endpoint, timeout=45,
+                session=client.session, absolute_deadline=deadline)
+        result = self._chat(fields, client)
+        if time.monotonic() >= deadline:
+            raise ExperimentFailure('timeout')
+        return result
+
+    def _chat(self, fields, client):
+        if self.failed_binding:
+            raise ExperimentFailure('model_digest_changed')
+        receipt = client.receipt(MODEL)
         if receipt["model_digest"] != DIGEST or not receipt.get("thinking_capable"):
+            self.failed_binding = True
             raise ExperimentFailure("model_digest_changed")
         payload = {**fields, "model": MODEL, "stream": False, "think": False,
                    "keep_alive": "30m", "options": PROFILE}
-        response = self.client.request("POST", "/api/chat", payload)["response"]
+        response = client.request("POST", "/api/chat", payload)["response"]
         if (response.get("model") != MODEL or response.get("done") is not True
                 or response.get("done_reason") not in (None, "stop")):
             raise ExperimentFailure("provider_incomplete_response")
@@ -206,6 +226,14 @@ def answer(question, search_fn, verify_fn, *, provider=None, controlled_evidence
         if any(identifier not in selected for identifier in decoded["span_ids"]):
             return finish("unverified_verifier_selection")
         final = resolve_selection(raw, evidence, plan)
+        # A subset verifier cannot repair an omitted requested provision. Check
+        # archive-bound anchors, never a benchmark target list or model prose.
+        citations = [citation for claim in final['backend_result'].get('claims', [])
+                     for citation in claim.get('citations', [])]
+        for key, field in (("sections", "section"), ("rules", "rule")):
+            retained = {str(c.get(field, '')).casefold() for c in citations}
+            if len(requested[key]) > 1 and not set(requested[key]).issubset(retained):
+                return finish('incomplete_requested_provisions')
         # Reverify sources after inference; a changed archive cannot publish a
         # quotation based solely on pre-inference validation.
         stage = time.monotonic()
@@ -216,10 +244,9 @@ def answer(question, search_fn, verify_fn, *, provider=None, controlled_evidence
         result.update(final["backend_result"])
         return finish()
     except ExperimentFailure as exc:
+        from .inference import PROVIDER_FAILURES
         reason = str(exc)
-        return finish(reason if reason in {"timeout", "model_digest_changed", "provider_incomplete_response", "evidence_context_limit",
-                      "provider_model_changed", "provider_rate_limited", "provider_auth_failed", "provider_model_unavailable",
-                      "provider_safety_blocked", "provider_invalid_selection", "gemini_key_missing", "gemini_configuration_invalid"}
+        return finish(reason if reason in PROVIDER_FAILURES
                       else "provider_unavailable", "unavailable")
     except (ValueError, TypeError, KeyError, RecursionError):
         return finish("unverified_evidence_or_selection")
