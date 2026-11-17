@@ -19,6 +19,8 @@
   let sessionModel = null;
   let sessionProvider = null;
   let externalProcessing = false;
+  let consentProviders = '';
+  const providerName = (identity) => ({ groq: 'Groq', gemini: 'Google Gemini', ollama: 'local Ollama' }[identity && identity.provider] || 'the configured provider');
 
   const asText = (value, fallback = 'Not provided') => {
     if (typeof value === 'string' && value.trim()) return value;
@@ -67,10 +69,12 @@
       active_generation_changed: 'The searchable archive changed. Verify the expected generation, then restart only the private Passport server. Do not reset or change the corpus. Your form is still here.',
       gemini_key_missing: 'The Gemini API key is not configured on the server. Configure GEMINI_API_KEY locally, then retry the connection. Do not enter an API key in this form.',
       gemini_configuration_invalid: 'The Gemini provider configuration is invalid. Check the server Gemini key, model and provider settings, then retry. Your form is still here.',
-      provider_auth_failed: 'Google Gemini rejected the server credentials. Check the server API key and its permissions, then retry. Do not enter credentials in this form.',
-      provider_rate_limited: 'Google Gemini has limited these requests. Wait before trying again and check the configured API quota. Your form is still here.',
-      provider_model_unavailable: 'The selected Gemini model is unavailable to this API configuration. Check the server model setting and access, then retry.',
-      provider_model_changed: 'The provider model version changed. Verify the configured Gemini version before restarting the private Passport service. Your form is still here.',
+      groq_key_missing: 'The Groq API key is not configured on the server. Configure GROQ_API_KEY locally, then retry. Do not enter credentials in this form.',
+      groq_configuration_invalid: 'The Groq provider configuration is invalid. Check the server model and provider settings, then retry. Your form is still here.',
+      provider_auth_failed: 'An inference provider rejected the server credentials. Check the server API key and its permissions, then retry. Do not enter credentials in this form.',
+      provider_rate_limited: 'An inference provider has limited these requests. Wait before trying again and check the configured API quota. Your form is still here.',
+      provider_model_unavailable: 'The selected model is unavailable to this API configuration. Check the server model setting and access, then retry.',
+      provider_model_changed: 'The provider model version changed. Verify the configured version before restarting the private Passport service. Your form is still here.',
     };
     return messages[reason] || 'Research resources are not ready. Retry the connection to check again. Your form is still here.';
   };
@@ -135,16 +139,24 @@
       const session = await requestJSON('/api/session', {}, 10000);
       sessionModel = session.model;
       sessionProvider = session.provider && typeof session.provider === 'object' ? session.provider : null;
-      const remote = session.external_processing === true || (sessionProvider && sessionProvider.external_processing === true);
-      if (remote !== externalProcessing) byId('external-acknowledgment').checked = false;
+      const fallback = session.fallback && session.fallback.configured === true ? session.fallback.provider : null;
+      const cloudNames = [...new Set([sessionProvider, fallback].filter((identity) => identity && identity.external_processing === true).map(providerName))];
+      const remote = session.external_processing === true || cloudNames.length > 0;
+      const providerList = cloudNames.length ? cloudNames.join(' and ') : 'the configured external provider';
+      if (remote !== externalProcessing || providerList !== consentProviders) byId('external-acknowledgment').checked = false;
+      consentProviders = providerList;
       externalProcessing = Boolean(remote);
+      const notice = byId('external-processing-notice');
+      notice.querySelector('strong').textContent = `${providerList} processing`;
+      notice.querySelector('p').textContent = `This configuration may send your non-confidential research intake and selected archived source passages to ${providerList} for planning and evidence selection, including fallback when configured. Each provider processes requests under its applicable API terms. Keep confidential, personal and unpublished technical details out of this preview.`;
+      byId('external-acknowledgment-row').querySelector('span').textContent = `I agree to send this non-confidential intake and the retrieved archived evidence to ${providerList} for this request, including configured fallback processing.`;
       byId('external-processing-notice').hidden = !externalProcessing;
       byId('external-acknowledgment-row').hidden = !externalProcessing;
       byId('external-acknowledgment').required = externalProcessing;
       csrfToken = typeof session.csrf_token === 'string' ? session.csrf_token : '';
       serviceReady = session.ready === true && csrfToken.length > 0;
       if (serviceReady) {
-        sessionStatus.textContent = externalProcessing ? 'Private session ready with Google Gemini. Review external processing and give consent before submitting.' : 'Private session ready. Submit only non-confidential information.';
+        sessionStatus.textContent = externalProcessing ? `Private session ready with ${providerName(sessionProvider)}. Review external processing and give consent before submitting.` : 'Private session ready. Submit only non-confidential information.';
       } else {
         sessionStatus.textContent = readinessMessage(session.reason);
         sessionStatus.parentElement.classList.add('unavailable');
@@ -315,11 +327,13 @@
     paragraph(metadata, 'Overall status: informational evidence only · Legal relevance review: unreviewed');
     const model = data.model || sessionModel;
     if (data.routing && data.routing.fallback_used === true) {
+      const primaryName = providerName(data.routing.primary);
+      const fallbackName = providerName(model);
       paragraph(metadata, data.status === 'unavailable'
-        ? 'Gemini was temporarily unavailable, and the local Qwen fallback could not complete this request.'
-        : 'Gemini was temporarily unavailable. This result used the local Qwen fallback.');
+        ? `${primaryName} was temporarily unavailable, and the ${fallbackName} fallback could not complete this request.`
+        : `${primaryName} was temporarily unavailable. This result used the ${fallbackName} fallback.`);
       if (data.routing.external_processing_attempted === true) {
-        paragraph(metadata, 'Gemini was attempted before local fallback; this request was not processed exclusively on this computer.');
+        paragraph(metadata, 'External AI processing was attempted for this request; it was not processed exclusively on this computer.');
       }
     }
     if (typeof model === 'string') paragraph(metadata, `Research model: ${model}`);

@@ -50,6 +50,19 @@ def configuration(provider=None):
             "keep_alive": "30m", "think": False}
     if provider is not None:
         identity = provider_identity(provider)
+        if identity['provider'] == 'groq':
+            result.update(identity)
+            actual = provider
+            for _ in range(5):
+                if isinstance(getattr(actual, 'profile', None), dict):
+                    break
+                child = getattr(actual, 'provider', None)
+                if child is None:
+                    break
+                actual = child
+            result.update(profile=getattr(actual, 'profile', {'num_ctx': 4096, 'num_predict': 200}),
+                          keep_alive=None, think='low', adapter_version='groq-rest-v1',
+                          context_enforcement='bounded_input_and_returned_usage_recheck')
         if identity['provider'] == 'gemini':
             result.update(identity)
             result.update(profile={"num_ctx": 4096, "num_predict": 200,

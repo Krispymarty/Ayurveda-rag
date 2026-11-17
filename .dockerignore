@@ -15,3 +15,12 @@ tests/tmp*
 *.docx
 *.zip
 *.jsonl
+
+# Operator policy records and loose user artifacts are never build inputs.
+/config/source_policies.json
+/*.csv
+/*.json
+*.sqlite
+*.sqlite3
+*.db
+*.log

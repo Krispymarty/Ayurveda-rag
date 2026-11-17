@@ -1,4 +1,4 @@
-"""Isolated Groq evaluation adapter; never installed in the production factory.
+"""Bounded Groq adapter for production and explicitly configured evaluation.
 
 The candidate preserves the existing messages, schema and 200-token completion
 cap (including hidden reasoning). Its byte preflight is deliberately conservative
@@ -22,7 +22,7 @@ from .llm_experiment import ExperimentFailure
 
 ROOT = Path(__file__).resolve().parents[1]
 ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions'
-DEFAULT_MODEL = 'openai/gpt-oss-120b'
+DEFAULT_MODEL = 'qwen/qwen3.8-27b'
 MODELS = frozenset({'openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b'})
 INPUT_LIMIT, OUTPUT_LIMIT, CONTEXT_LIMIT = 3800, 200, 4096
 MAX_RESPONSE = 256_000
@@ -87,7 +87,7 @@ def _wire_schema(schema):
 
 class GroqCandidate:
     def __init__(self, *, api_key=None, model=None, session=None, timeout=45, root=ROOT,
-                 token_counter=None):
+                 token_counter=None, usage_checked_context=False):
         self.model = read_model(root) if model is None else model
         if self.model not in MODELS or type(timeout) is not int or not 1 <= timeout <= 45:
             raise ExperimentFailure('groq_configuration_invalid')
@@ -104,6 +104,9 @@ class GroqCandidate:
         if token_counter is not None and not callable(token_counter):
             raise ExperimentFailure('groq_configuration_invalid')
         self.token_counter = token_counter
+        if type(usage_checked_context) is not bool:
+            raise ExperimentFailure('groq_configuration_invalid')
+        self.usage_checked_context = usage_checked_context
 
     @property
     def metadata(self):
@@ -115,8 +118,10 @@ class GroqCandidate:
         return {'num_ctx': CONTEXT_LIMIT, 'num_predict': OUTPUT_LIMIT, 'temperature': 0,
                 'reasoning_effort': 'low', 'include_reasoning': False,
                 'context_enforcement': ('trusted_counter_plus_256_then_returned_usage' if self.token_counter
+                                        else 'bounded_utf8_bytes_then_returned_usage' if self.usage_checked_context
                                         else 'conservative_utf8_bytes_then_returned_usage'),
                 'grammar_normalization': 'drop_uniqueItems_backend_enforced',
+                'input_transport_bytes_limit': 48_000,
                 'strict_json_schema': True}
 
     def chat(self, fields):
@@ -142,6 +147,8 @@ class GroqCandidate:
         if [m['role'] for m in fields['messages']] != ['system', 'user']:
             raise ExperimentFailure('groq_configuration_invalid')
         input_bytes = len(json.dumps(fields, ensure_ascii=False, separators=(',', ':')).encode('utf-8'))
+        if input_bytes > 48_000:
+            raise ExperimentFailure('evidence_context_limit')
         preflight_count = input_bytes
         if self.token_counter is not None:
             try:
@@ -151,7 +158,7 @@ class GroqCandidate:
             if type(preflight_count) is not int or preflight_count < 0:
                 raise ExperimentFailure('groq_configuration_invalid')
             preflight_count += 256
-        if preflight_count > INPUT_LIMIT:
+        if preflight_count > INPUT_LIMIT and not (self.usage_checked_context and self.token_counter is None):
             raise ExperimentFailure('evidence_context_limit')
         started = time.monotonic()
         deadline = started + self.timeout
@@ -269,4 +276,5 @@ class GroqCandidate:
         return message['content'], {'provider_wall_ms': (time.monotonic() - started) * 1000,
             'http_requests': 1, 'prompt_tokens': prompt, 'output_tokens': completion,
             'reasoning_tokens': reasoning, 'input_preflight_utf8_bytes': input_bytes,
+            'input_preflight_is_token_estimate': self.token_counter is not None,
             'input_preflight_count_with_margin': preflight_count}

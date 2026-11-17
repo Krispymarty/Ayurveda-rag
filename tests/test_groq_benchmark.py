@@ -131,11 +131,10 @@ class GroqBenchmarkTests(unittest.TestCase):
         self.assertIsNone(summary['final_strict_success_all_attempted'])
         self.assertIsNone(summary['independent_legal_accuracy_score'])
 
-    def test_production_factory_still_rejects_groq(self):
-        with patch('ipindia_corpus.inference.GeminiProvider') as remote:
-            with self.assertRaisesRegex(ExperimentFailure, '^gemini_configuration_invalid$'):
-                make_provider('groq')
-        remote.assert_not_called()
+    def test_production_factory_constructs_explicit_groq_with_runtime_bounds(self):
+        with patch('ipindia_corpus.groq_candidate.GroqCandidate') as candidate:
+            self.assertIs(make_provider('groq'), candidate.return_value)
+        candidate.assert_called_once_with(usage_checked_context=True)
 
 
 if __name__ == '__main__':

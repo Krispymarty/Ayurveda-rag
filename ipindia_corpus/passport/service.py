@@ -206,9 +206,13 @@ class PassportEngine:
         self.fallback_provider = fallback_provider
         if fallback_provider is not None:
             identity = provider_identity(fallback_provider)
-            if (provider_identity(self.provider)['provider'] != 'gemini'
-                    or identity['provider'] != 'ollama' or identity['model'] != extracts.MODEL
-                    or identity['model_digest'] != extracts.DIGEST or identity['external_processing'] is not False):
+            primary = provider_identity(self.provider)
+            cloud_pair = (primary['provider'] == 'groq' and primary['model'] == 'qwen/qwen3.8-27b'
+                          and identity['provider'] == 'gemini' and identity['external_processing'] is True)
+            legacy_pair = (primary['provider'] == 'gemini' and identity['provider'] == 'ollama'
+                           and identity['model'] == extracts.MODEL and identity['model_digest'] == extracts.DIGEST
+                           and identity['external_processing'] is False)
+            if not (cloud_pair or legacy_pair):
                 raise ValueError('pinned_local_fallback_required')
         self.clock = clock or (lambda: time.monotonic())
         self.circuit = Circuit(clock=self.clock)
@@ -220,10 +224,11 @@ class PassportEngine:
         search = LocalSearch()
         gid = search.status()["generation_id"]
         provider = make_provider()
-        setting = read_setting('AYURIP_QWEN_FALLBACK', '1')
-        if setting not in {'0', '1'}:
+        kind = provider_identity(provider)['provider']
+        setting = read_setting('AYURIP_FALLBACK_PROVIDER', 'gemini' if kind == 'groq' else 'none')
+        if setting not in {'none', 'gemini', 'ollama'}:
             raise ValueError('invalid_fallback_configuration')
-        fallback = make_provider('ollama') if setting == '1' and provider_identity(provider)['provider'] == 'gemini' else None
+        fallback = make_provider(setting) if setting != 'none' else None
         return cls(search, PublishedVerifier(root, gid), provider=provider, prefetch=prefetch, fallback_provider=fallback)
 
     def _prepare(self, issues, search_fn=None):
@@ -305,11 +310,11 @@ class PassportEngine:
                 self._clear_failed_attempt(result, 'timeout')
             if result['status'] == 'unavailable' and attempts and attempts[-1]['status'] != 'unavailable':
                 attempts[-1].update(status='unavailable', reason=result.get('reason'), discarded=True)
-            result['routing'] = {'version': 'gemini-qwen-failover-v1', 'primary': provider_identity(self.provider),
+            result['routing'] = {'version': 'cloud-provider-failover-v2', 'primary': provider_identity(self.provider),
                 'fallback_configured': self.fallback_provider is not None, 'fallback_used': used,
                 'trigger': trigger, 'attempts': attempts,
                 'calls_attempted_total': sum(a['calls_attempted'] for a in attempts),
-                'external_processing_attempted': any(a['provider'] == 'gemini' and a['calls_attempted'] for a in attempts),
+                'external_processing_attempted': any(a['provider'] in {'gemini', 'groq'} and a['calls_attempted'] for a in attempts),
                 'circuit': self.circuit.snapshot()}
             result['timings_ms']['complete'] = round((self.clock() - budget.started) * 1000, 2)
             return result
@@ -393,7 +398,7 @@ class PassportEngine:
             return finish("blocked")
         if provider.metadata['external_processing'] and not intake.acknowledged_external_processing:
             result['reason'] = 'external_processing_consent_required'
-            result['unresolved_questions'].insert(0, 'Consent is required before sending this non-confidential intake and public evidence to Google Gemini.')
+            result['unresolved_questions'].insert(0, 'Consent is required before sending this non-confidential intake and public evidence to the configured cloud providers (Groq and Google Gemini).')
             return finish('blocked')
         try:
             if not self.ready():

@@ -32,7 +32,7 @@ PROVIDER_FAILURES = frozenset({'timeout', 'model_digest_changed', 'provider_inco
     'provider_model_unavailable', 'provider_safety_blocked', 'provider_invalid_selection',
     'provider_invalid_response', 'provider_unavailable', 'provider_response_too_large',
     'provider_request_rejected', 'provider_redirect_rejected', 'provider_tls_failed',
-    'gemini_key_missing', 'gemini_configuration_invalid'})
+    'gemini_key_missing', 'gemini_configuration_invalid', 'groq_key_missing', 'groq_configuration_invalid'})
 
 
 def _file_settings(root=ROOT):
@@ -42,7 +42,7 @@ def _file_settings(root=ROOT):
         return {}
     keys = {}
     for line in path.read_text(encoding='utf-8-sig').splitlines():
-        match = re.fullmatch(r'\s*(?:export\s+)?(GEMINI_API_KEY|GOOGLE_API_KEY|AYURIP_LLM_PROVIDER|AYURIP_GEMINI_MODEL|AYURIP_QWEN_FALLBACK)\s*=\s*(.*?)\s*', line)
+        match = re.fullmatch(r'\s*(?:export\s+)?(GEMINI_API_KEY|GOOGLE_API_KEY|GROQ_API_KEY|AYURIP_LLM_PROVIDER|AYURIP_GEMINI_MODEL|AYURIP_GROQ_MODEL|AYURIP_FALLBACK_PROVIDER|AYURIP_QWEN_FALLBACK)\s*=\s*(.*?)\s*', line)
         if match:
             name, value = match.groups()
             if value.startswith(('\"', "'")):
@@ -74,7 +74,14 @@ def read_setting(name, default):
 
 
 def configured_identity():
-    kind = read_setting('AYURIP_LLM_PROVIDER', 'gemini')
+    kind = read_setting('AYURIP_LLM_PROVIDER', 'groq')
+    if kind == 'groq':
+        from .groq_candidate import DEFAULT_MODEL as GROQ_MODEL, MODELS as GROQ_MODELS
+        model = read_setting('AYURIP_GROQ_MODEL', GROQ_MODEL)
+        if model not in GROQ_MODELS:
+            raise ExperimentFailure('groq_configuration_invalid')
+        return {'provider': 'groq', 'model': model, 'model_version': None,
+                'model_digest': None, 'external_processing': True}
     if kind == 'ollama':
         from .reliable_answers import MODEL, DIGEST
         return {'provider': 'ollama', 'model': MODEL, 'model_digest': DIGEST,
@@ -98,7 +105,10 @@ def provider_identity(provider):
 
 
 def make_provider(kind=None):
-    kind = kind or read_setting('AYURIP_LLM_PROVIDER', 'gemini')
+    kind = kind or read_setting('AYURIP_LLM_PROVIDER', 'groq')
+    if kind == 'groq':
+        from .groq_candidate import GroqCandidate
+        return GroqCandidate(usage_checked_context=True)
     if kind == 'ollama':
         from .reliable_answers import SpanProvider
         return SpanProvider()

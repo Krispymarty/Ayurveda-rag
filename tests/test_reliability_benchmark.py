@@ -14,6 +14,8 @@ from test_span_selection import case, hit
 class ReliabilityBenchmarkTests(unittest.TestCase):
     def test_new_splits_are_balanced_distinct_and_bound(self):
         root = Path(__file__).resolve().parents[1]
+        if not (root / "data/benchmarks" / VERSION / "manifest.json").is_file():
+            self.skipTest("Private reliability benchmark is not included in the source-only repository")
         manifest, cases = load(root, "development")
         self.assertEqual(len(cases), 30)
         self.assertEqual(sum(c["expected"]["policy"] == "quote_targets" for c in cases), 15)

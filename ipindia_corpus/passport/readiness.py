@@ -47,7 +47,7 @@ class EngineReadiness:
             # Only an exception class is logged; no paths, settings, intake or text.
             logger.warning("Passport initialization failed (%s)", type(exc).__name__)
             failure = (str(exc) if isinstance(exc, ExperimentFailure)
-                       and str(exc) in {"gemini_key_missing", "gemini_configuration_invalid"}
+                       and str(exc) in {"gemini_key_missing", "gemini_configuration_invalid", "groq_key_missing", "groq_configuration_invalid"}
                        else "search_dependency_unavailable")
         with self.lock:
             self._expire()
@@ -88,8 +88,8 @@ class EngineReadiness:
         try:
             identity = (provider_identity(getattr(engine, "provider", None))
                         if engine is not None else configured_identity())
-        except (ValueError, ExperimentFailure):
-            ready, reason = False, "gemini_configuration_invalid"
+        except (ValueError, ExperimentFailure) as exc:
+            ready, reason = False, str(exc) if str(exc) in {'groq_key_missing', 'groq_configuration_invalid'} else "gemini_configuration_invalid"
             identity = {"provider": "unavailable", "model": None,
                         "model_version": None, "model_digest": None,
                         "external_processing": False}

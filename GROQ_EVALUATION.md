@@ -1,21 +1,19 @@
 # Isolated Groq comparison
 
-Groq is an evaluation candidate, not an active Passport provider. The existing
-Gemini primary and pinned Qwen fallback configuration is unchanged. No public
-answer route is enabled by adding a Groq key.
+The private Passport now defaults to Groq Qwen 3.8 with Gemini fallback. See [current routing](docs/operations/model-routing.md). Evaluation remains opt-in and never activates public answers. Historical GPT-OSS comparisons require an explicit AYURIP_GROQ_MODEL=openai/gpt-oss-120b override.
 
 Put the key only in the existing ignored project `.env` or server environment:
 
 ```dotenv
 GROQ_API_KEY=your_private_key
-AYURIP_GROQ_MODEL=openai/gpt-oss-120b
 ```
+
+For an isolated historical GPT-OSS comparison, set `$env:AYURIP_GROQ_MODEL='openai/gpt-oss-120b'` only in a dedicated benchmark shell; close that shell afterwards. Leave the active project `.env` on `qwen/qwen3.8-27b`.
 
 Do not put credentials in frontend code, Git, screenshots or model inputs.
 The adapter reads only these two Groq settings, uses the official fixed HTTPS
 endpoint and sends the key in an authorization header. It disables proxies,
-redirects, tools and retries. Ordinary application provider selection does not
-accept `groq`; the opt-in evaluation driver constructs the candidate explicitly.
+redirects, tools and retries. Application provider selection supports Groq; the evaluator still uses an explicit isolated provider.
 
 Run offline checks before making real API calls:
 

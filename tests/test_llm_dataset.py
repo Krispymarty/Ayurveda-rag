@@ -16,6 +16,8 @@ ROOT = Path(__file__).resolve().parents[1]
 class LLMDatasetTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        if not (ROOT / "data/benchmarks" / VERSION / "manifest.json").is_file():
+            raise unittest.SkipTest("Private frozen benchmark is not included in the source-only repository")
         cls.manifest, cls.cases, cls.system, cls.schema = load_frozen(ROOT)
         _, documents, chunks = generation(ROOT, generation_id=GENERATION)
         cls.documents = {doc["document_id"]: doc for doc in documents}
