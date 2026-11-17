@@ -27,6 +27,14 @@ def entry():
 
 
 class EvidenceQualityTests(unittest.TestCase):
+    def test_provider_stopped_before_questions_remains_unexecuted_not_success(self):
+        metrics = summarize([], 26, ['groq'])['groq']
+        self.assertEqual(metrics['attempted_questions'], 0)
+        self.assertEqual(metrics['unexecuted_questions'], 26)
+        self.assertIsNone(metrics['final_strict_success_completed'])
+        self.assertIsNone(metrics['final_strict_success_all_attempted'])
+        self.assertIsNone(metrics['independent_legal_accuracy_score'])
+
     def test_complete_requires_both_groups_but_exception_remains_separate(self):
         item = entry()
         plan = build_plan(item['case']['evidence'])
