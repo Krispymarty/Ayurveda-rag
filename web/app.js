@@ -115,11 +115,23 @@
   }
   function demoMode() { return state.demoEnabled && $('research-mode').value === 'answer'; }
   function renderAnswer(data, elapsed) {
-    $('results-title').textContent = data.status === 'answered' ? 'Verified research extracts' : 'No supported answer';
+    const unavailable = data.status === 'unavailable';
+    const titles = {personal_legal_or_medical_advice: 'Research or personal advice?', current_legal_status_unverified: 'Current legal status is not established'};
+    $('results-title').textContent = data.status === 'answered' ? 'Verified research extracts' : unavailable ? 'AI service temporarily unavailable' : titles[data.reason] || 'No supporting extract selected';
     $('results-meta').textContent = `IP India demo · ${Math.round(elapsed)} ms · ${data.provider?.model || 'No model call'}`;
     const fragment = document.createDocumentFragment();
     fragment.append(node('p', 'result-notice', data.notice));
-    if (!data.claims?.length) fragment.append(node('p', 'state-block', `No extract was published: ${(data.reason || 'insufficient evidence').replaceAll('_', ' ')}. Try a specific archived provision or switch to evidence search.`));
+    if (!data.claims?.length) {
+      const reasons = {
+        personal_legal_or_medical_advice: 'The request-policy check classified this question as personal legal or medical advice. If you meant archived research, ask what a named section or rule says.',
+        current_legal_status_unverified: 'The archive cannot establish whether a provision is currently in force.',
+        insufficient_relevant_evidence: 'The model did not select enough directly relevant archived evidence.',
+        provider_rate_limited: 'The model provider has reached its request limit. Please wait before trying again.',
+        provider_auth_failed: 'The model provider rejected the configured credentials. The service owner needs to check its configuration.',
+        provider_request_rejected: 'The model provider rejected this request. No quotation was published; this does not mean the archive has no relevant provision.'
+      };
+      fragment.append(node('p', 'state-block', `${reasons[data.reason] || `No extract was published: ${(data.reason || 'insufficient evidence').replaceAll('_', ' ')}.`} You can switch to evidence search to inspect available passages.`));
+    }
     (data.claims || []).forEach((claim) => {
       const article = node('article', 'evidence-hit');
       article.append(node('blockquote', 'hit-passage', claim.text));
@@ -195,7 +207,7 @@
         })} : {})
       });
       if (sequence !== state.sequence) return;
-      if (!response.ok) throw new Error(`http_${response.status}`);
+      if (!response.ok && !(answerMode && response.status === 503)) throw new Error(`http_${response.status}`);
       const data = await response.json();
       if (sequence !== state.sequence) return;
       if (answerMode) renderAnswer(data, performance.now() - started);

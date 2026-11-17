@@ -8,6 +8,7 @@ from .grounded_answers import NOTICE
 from .inference import make_provider, provider_binding_valid, provider_identity, read_setting
 from .passport.failover import FALLBACK_REASONS, RequestBudget
 from .request_policy import classify
+from .demo_queries import retrieval_query, VERSION as QUERY_VERSION
 
 DEMO_NOTICE = "Classroom research demo: IP India archives only; not certified legal advice. " + NOTICE
 
@@ -45,7 +46,7 @@ def answer(question, search_fn, verify_fn, binding_check, *, primary=None, fallb
     def cached_search(query, top_k=5):
         key = (query, top_k)
         if key not in cached:
-            cached[key] = search_fn(query, top_k=top_k)
+            cached[key] = search_fn(retrieval_query(query), top_k=top_k)
         return deepcopy(cached[key])
 
     attempts = []
@@ -81,5 +82,5 @@ def answer(question, search_fn, verify_fn, binding_check, *, primary=None, fallb
     # Never expose raw completions, model-facing prompts or internal file paths.
     public = {key: result[key] for key in ("status", "reason", "answer_text", "claims", "generation_id", "provider", "timings_ms") if key in result}
     public.update(notice=DEMO_NOTICE, mode="verified_extracts", demo=True, scope="ipindia_only",
-                  routing={"fallback_used": used_fallback, "attempts": attempts})
+                  routing={"fallback_used": used_fallback, "attempts": attempts, "query_adapter": QUERY_VERSION})
     return public

@@ -9,3 +9,11 @@ Suggested question: “What does the archived Patents Act say about traditional 
 With the existing database volume and local archive provisioned, start Docker Desktop normally, then run `docker compose up -d --no-build db api`. Do not start the sync profiles. No database migration or corpus promotion is needed. Disable the demo by setting the flag to `0`; restart only the API. The existing cloud `public_research` mode remains restricted separately: a classroom demo does not certify a public legal-answer release.
 
 For a clean default-configuration regression run in PowerShell, set `$env:AYURIP_DEMO_ANSWERS='0'` in the test shell before unittest discovery. New demo tests explicitly enable the path under synthetic fixtures; full-corpus tests use the existing local data. Never upload credentials or ordinary invention inputs as test observations.
+
+## Hindi provision questions and known limits
+
+The demo maps a bounded Hindi legal vocabulary and Devanagari digits into retrieval terms, preserving provision references. The original question still reaches both model passes unchanged; original source text and citations are not translated. Unknown Hindi stays on the existing semantic path. English retrieval queries are unchanged. The active corpus and ranker v2 are not replaced.
+
+Request-policy v3 distinguishes English “mere admixture” from romanized possessive usage, and archived treatment-provision questions from personal/clinical instructions. A section number alone does not authorize medical advice. Policy abstention, insufficient evidence and provider failure have different UI explanations.
+
+A retained ten-question HTTP smoke test returned extracts for all five Hindi examples and three of five English examples. All five Hindi requests used Gemini after Groq rate-limit failures; this is not a Qwen-only language comparison. One English request was rejected by Groq and one lacked the requested traditional-knowledge opposition passage in the top five. Those attempts remain failures/abstentions, not fabricated answers or replaced scores. Delivered extracts are not independently certified complete legal answers. Raw observations remain excluded under `data/hindi_demo_repair_20261117/`.
