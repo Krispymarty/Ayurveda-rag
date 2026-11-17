@@ -3,7 +3,7 @@
   const $ = (id) => document.getElementById(id);
   const sources = {ipindia: 'IP India', indiacode: 'India Code', tkdl: 'TKDL'};
   const officialHosts = new Set(['ipindia.gov.in', 'www.ipindia.gov.in', 'indiacode.gov.in', 'www.indiacode.gov.in', 'indiacode.nic.in', 'www.indiacode.nic.in', 'upload.indiacode.nic.in', 'tkdl.res.in', 'www.tkdl.res.in']);
-  const state = {ready: false, pending: false, controller: null, sequence: 0, sourceOpener: null, healthPending: false, healthTimer: null};
+  const state = {demoEnabled: false, ready: false, pending: false, controller: null, sequence: 0, sourceOpener: null, healthPending: false, healthTimer: null};
   const formatNumber = new Intl.NumberFormat('en-IN');
   const node = (tag, className, text) => {
     const result = document.createElement(tag);
@@ -113,9 +113,27 @@
     $('results').replaceChildren(fragment);
     announce(`${data.hits.length} evidence passages found.`);
   }
+  function demoMode() { return state.demoEnabled && $('research-mode').value === 'answer'; }
+  function renderAnswer(data, elapsed) {
+    $('results-title').textContent = data.status === 'answered' ? 'Verified research extracts' : 'No supported answer';
+    $('results-meta').textContent = `IP India demo · ${Math.round(elapsed)} ms · ${data.provider?.model || 'No model call'}`;
+    const fragment = document.createDocumentFragment();
+    fragment.append(node('p', 'result-notice', data.notice));
+    if (!data.claims?.length) fragment.append(node('p', 'state-block', `No extract was published: ${(data.reason || 'insufficient evidence').replaceAll('_', ' ')}. Try a specific archived provision or switch to evidence search.`));
+    (data.claims || []).forEach((claim) => {
+      const article = node('article', 'evidence-hit');
+      article.append(node('blockquote', 'hit-passage', claim.text));
+      (claim.citations || []).forEach((citation) => {
+        article.append(linkFor(citation, `${citation.title || 'Official source'} · ${anchorLabel(citation)}`), provenance(citation));
+      });
+      fragment.append(article);
+    });
+    $('results').replaceChildren(fragment);
+    announce(`${data.claims?.length || 0} verified extracts. ${data.reason || ''}`);
+  }
   function updateSubmit() {
     $('submit-button').disabled = !state.ready || state.pending;
-    $('submit-label').textContent = state.pending ? 'Searching…' : 'Find evidence';
+    $('submit-label').textContent = state.pending ? (demoMode() ? 'Selecting extracts…' : 'Searching…') : demoMode() ? 'Ask AyurIP' : 'Find evidence';
   }
   async function requestJson(url, options = {}, timeout = 15000, allowUnavailable = false) {
     const controller = new AbortController();
@@ -136,6 +154,11 @@
       return;
     }
     $('question').setCustomValidity('');
+    if (demoMode() && !$('demo-consent').checked) {
+      $('demo-consent').setCustomValidity('Confirm non-confidential input and cloud-processing consent for the demo.');
+      $('demo-consent').reportValidity();
+      return;
+    }
     if (state.controller) state.controller.abort();
     const controller = new AbortController();
     const sequence = ++state.sequence;
@@ -159,15 +182,24 @@
     if ($('source-filter').value) params.set('source', $('source-filter').value);
     if ($('domain-filter').value) params.set('domain', $('domain-filter').value);
     let timedOut = false;
-    const timer = window.setTimeout(() => { timedOut = true; controller.abort(); }, 45000);
+    const timer = window.setTimeout(() => { timedOut = true; controller.abort(); }, demoMode() ? 105000 : 45000);
     const started = performance.now();
     try {
-      const response = await fetch(`/search?${params}`, {credentials: 'same-origin', cache: 'no-store', signal: controller.signal});
+      const answerMode = demoMode();
+      const response = await fetch(answerMode ? '/answer' : `/search?${params}`, {
+        credentials: 'same-origin', cache: 'no-store', signal: controller.signal,
+        ...(answerMode ? {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({
+          question: query, source: $('source-filter').value || 'ipindia', domain: $('domain-filter').value || null,
+          top_k: 5, acknowledged_nonconfidential: $('demo-consent').checked,
+          acknowledged_external_processing: $('demo-consent').checked
+        })} : {})
+      });
       if (sequence !== state.sequence) return;
       if (!response.ok) throw new Error(`http_${response.status}`);
       const data = await response.json();
       if (sequence !== state.sequence) return;
-      renderSearch(data, performance.now() - started);
+      if (answerMode) renderAnswer(data, performance.now() - started);
+      else renderSearch(data, performance.now() - started);
     } catch (error) {
       if (sequence !== state.sequence || (error.name === 'AbortError' && !timedOut)) return;
       $('results-title').textContent = 'Research is temporarily unavailable';
@@ -327,6 +359,13 @@
     navLinks.forEach((link) => { const section = document.querySelector(link.hash); if (section) observer.observe(section); });
     if ($('research-results')) observer.observe($('research-results'));
   }
+  $('research-mode').addEventListener('change', () => { $('demo-consent').checked = false; updateSubmit(); });
+  $('demo-consent').addEventListener('change', () => $('demo-consent').setCustomValidity(''));
+  requestJson('/capabilities').then((capabilities) => {
+    state.demoEnabled = capabilities.demo === true;
+    $('demo-controls').hidden = !state.demoEnabled;
+    updateSubmit();
+  }).catch(() => {});
   checkHealth();
   loadSources();
 })();

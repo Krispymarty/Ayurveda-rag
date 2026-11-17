@@ -11,9 +11,9 @@ import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
 from psycopg import Error as DatabaseError
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StrictBool
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from typing import Literal
@@ -26,6 +26,7 @@ from .grounded_answers import generate_answer, load_config, NOTICE
 from .http_security import configure_security
 from .readiness import Readiness
 from .cloud_config import load_deployment_config
+from . import demo_answers
 
 DEPLOYMENT = load_deployment_config()
 
@@ -83,6 +84,8 @@ class AnswerRequest(BaseModel):
     source: Literal["ipindia", "indiacode", "tkdl"] | None = None
     domain: str | None = Field(default=None, max_length=80)
     top_k: int = Field(default=5, ge=1, le=10, strict=True)
+    acknowledged_nonconfidential: StrictBool = False
+    acknowledged_external_processing: StrictBool = False
 
 
 @app.get("/", include_in_schema=False)
@@ -139,6 +142,20 @@ def _answer_capabilities():
         configured, provider = False, {}
     if DEPLOYMENT.public_research:
         configured, provider = False, {}
+    if demo_answers.enabled() and not DEPLOYMENT.public_research:
+        from .inference import configured_identity
+        try:
+            identity = configured_identity()
+        except Exception:
+            identity = {}
+        return {"active_generation_id": generation_id, "index_available": bool(generation_id),
+                "active_source_document_counts": counts, "three_source_certified": certified,
+                "certification": certification, "provider_configured": bool(identity), "provider": identity,
+                "answer_generation_enabled": bool(generation_id and counts.get("ipindia", 0) and identity),
+                "answer_generation_reason": None if generation_id and counts.get("ipindia", 0) and identity else "demo_dependencies_unavailable",
+                "answer_mode": "verified_extracts", "demo": True, "scope": "ipindia_only",
+                "public_release_ready": False, "deployment": DEPLOYMENT.mode,
+                "private_passport_enabled": False, "notice": demo_answers.DEMO_NOTICE}
     return {"active_generation_id": generation_id, "index_available": bool(generation_id),
             "active_source_document_counts": counts, "three_source_certified": certified,
             "certification": certification, "provider_configured": configured, "provider": provider,
@@ -167,7 +184,35 @@ def _verify_answer_hit(hit, generation_id):
 
 
 @app.post("/answer")
-def answer_endpoint(request: AnswerRequest):
+def answer_endpoint(request: AnswerRequest, http_request: Request = None):
+    if demo_answers.enabled() and not DEPLOYMENT.public_research:
+        if http_request is None:
+            return JSONResponse(status_code=403, content=demo_answers.response("http_request_required"))
+        origin = http_request.headers.get("origin")
+        if origin and origin != f"http://{http_request.headers.get('host')}":
+            return JSONResponse(status_code=403, content=demo_answers.response("same_origin_required"))
+        if not request.acknowledged_nonconfidential or not request.acknowledged_external_processing:
+            return JSONResponse(status_code=403, content=demo_answers.response("external_processing_consent_required"))
+        if request.source not in (None, "ipindia"):
+            return demo_answers.response("source_not_available_in_demo")
+        try:
+            snapshot = _ensure_ready()
+            gid = snapshot["binding"][0]
+        except Exception:
+            return JSONResponse(status_code=503, content=demo_answers.response("search_not_ready", status="unavailable"))
+
+        def bound():
+            if _ensure_ready()["binding"][0] != gid:
+                raise ValueError("active_generation_changed")
+
+        def demo_search(question, top_k=5):
+            response = search(question, top_k=5, source="ipindia", domain=request.domain)
+            if response["generation_id"] != gid or any(hit.get("source") != "ipindia" for hit in response["hits"]):
+                raise ValueError("demo_source_or_generation_changed")
+            return response
+
+        result = demo_answers.answer(request.question, demo_search, _verify_answer_hit, bound)
+        return JSONResponse(status_code=503 if result["status"] == "unavailable" else 200, content=result)
     if DEPLOYMENT.public_research:
         return JSONResponse(status_code=503, content={"status": "unavailable", "answer_text": "", "claims": [],
             "reason": "three_source_not_certified", "notice": NOTICE,

@@ -10,7 +10,7 @@ Ayurveda intellectual-property research through traceable government-source evid
 - **Interface:** existing responsive HTML/CSS/JavaScript and FastAPI.
 - **Evidence:** verified archived IP India corpus. India Code, public TKDL and NBA material are not certified for admission.
 
-The model selects evidence IDs; backend code copies quotations and constructs citations. Legal status stays unknown. Public `/answer` remains blocked. The Evidence Passport remains a loopback-only research preview, not a public legal-advice system. Deployment is not claimed.
+The model selects evidence IDs; backend code copies quotations and constructs citations. Legal status stays unknown. An explicit local [classroom demo](docs/operations/classroom-demo.md) enables IP India extracts; the cloud public-answer release remains restricted. The Evidence Passport remains a loopback-only research preview, not a public legal-advice system. Deployment is not claimed.
 
 ## Setup
 
@@ -32,6 +32,7 @@ Do not enable the optional scheduler/candidate profiles without resolved access 
 ## Documentation
 
 - [Model routing, consent and rollback](docs/operations/model-routing.md)
+- [Classroom demo](docs/operations/classroom-demo.md)
 - [Repository map](docs/REPOSITORY.md)
 - [Evaluation instructions](GROQ_EVALUATION.md)
 - [Earlier operational workflows](docs/archive/README-before-provider-finalization.md) — historical, not current release claims.

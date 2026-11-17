@@ -42,7 +42,7 @@ def _file_settings(root=ROOT):
         return {}
     keys = {}
     for line in path.read_text(encoding='utf-8-sig').splitlines():
-        match = re.fullmatch(r'\s*(?:export\s+)?(GEMINI_API_KEY|GOOGLE_API_KEY|GROQ_API_KEY|AYURIP_LLM_PROVIDER|AYURIP_GEMINI_MODEL|AYURIP_GROQ_MODEL|AYURIP_FALLBACK_PROVIDER|AYURIP_QWEN_FALLBACK)\s*=\s*(.*?)\s*', line)
+        match = re.fullmatch(r'\s*(?:export\s+)?(GEMINI_API_KEY|GOOGLE_API_KEY|GROQ_API_KEY|AYURIP_LLM_PROVIDER|AYURIP_GEMINI_MODEL|AYURIP_GROQ_MODEL|AYURIP_FALLBACK_PROVIDER|AYURIP_DEMO_ANSWERS|AYURIP_QWEN_FALLBACK)\s*=\s*(.*?)\s*', line)
         if match:
             name, value = match.groups()
             if value.startswith(('\"', "'")):
