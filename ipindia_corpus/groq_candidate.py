@@ -23,7 +23,7 @@ from .llm_experiment import ExperimentFailure
 ROOT = Path(__file__).resolve().parents[1]
 ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions'
 DEFAULT_MODEL = 'openai/gpt-oss-120b'
-MODELS = frozenset({'openai/gpt-oss-120b', 'openai/gpt-oss-20b'})
+MODELS = frozenset({'openai/gpt-oss-120b', 'openai/gpt-oss-20b', 'qwen/qwen3.8-27b'})
 INPUT_LIMIT, OUTPUT_LIMIT, CONTEXT_LIMIT = 3800, 200, 4096
 MAX_RESPONSE = 256_000
 CANDIDATE_FAILURES = PROVIDER_FAILURES | {'groq_key_missing', 'groq_configuration_invalid'}

@@ -49,6 +49,19 @@ class Session:
 
 
 class GroqCandidateTests(unittest.TestCase):
+    def test_requested_qwen_model_preserves_limits_and_checks_returned_identity(self):
+        model = 'qwen/qwen3.8-27b'
+        session = Session(Response(generated(model=model)))
+        provider = GroqCandidate(api_key=KEY, model=model, session=session)
+        raw, _ = provider.chat(FIELDS)
+        self.assertEqual(json.loads(raw), {'span_ids': ['S001']})
+        self.assertEqual(provider.metadata['model_version'], model)
+        self.assertEqual(session.calls[0][2]['json']['max_completion_tokens'], 200)
+        self.assertEqual(session.calls[0][2]['json']['reasoning_effort'], 'low')
+        wrong = GroqCandidate(api_key=KEY, model=model, session=Session(Response(generated())))
+        with self.assertRaisesRegex(ExperimentFailure, 'provider_model_changed'):
+            wrong.chat(FIELDS)
+
     def provider(self, *responses, **kwargs):
         session = Session(*(responses or [Response(generated())]))
         return GroqCandidate(api_key=KEY, model=MODEL, session=session, **kwargs), session
