@@ -2,6 +2,7 @@
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 
 from ipindia_corpus.cloud_config import load_deployment_config
@@ -58,7 +59,11 @@ def runtime_port():
 
 def main():
     port = runtime_port()
-    verify_release()
+    manifest = verify_release()
+    if load_deployment_config().hosted_answers and (
+            manifest.get("hosted_extracts_supported") is not True
+            or not re.fullmatch(r"[0-9a-f]{40}", manifest.get("source_commit", ""))):
+        raise ValueError("hosted_extracts_release_binding_failed")
     import uvicorn
     uvicorn.run("ipindia_corpus.search_api:app", host="0.0.0.0", port=port,
                 proxy_headers=False, access_log=False, workers=1)

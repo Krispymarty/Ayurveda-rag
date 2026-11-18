@@ -2,6 +2,7 @@
 import argparse
 import hashlib
 import json
+import re
 from pathlib import Path
 import shutil
 
@@ -19,10 +20,12 @@ def sha(path):
     return digest.hexdigest()
 
 
-def prepare(output, root=ROOT):
+def prepare(output, root=ROOT, *, source_commit=None):
     root, output = Path(root).resolve(), Path(output).resolve()
     if output.exists() or output == root or root.is_relative_to(output):
         raise ValueError("new_separate_staging_directory_required")
+    if source_commit is not None and not re.fullmatch(r"[0-9a-f]{40}", source_commit):
+        raise ValueError("invalid_source_commit")
     output.mkdir(parents=True)
     resolver = ArchiveResolver(root)
     files, counts = {}, {}
@@ -91,6 +94,8 @@ def prepare(output, root=ROOT):
                 "model_revision": revision, "generations": counts, "original_files": len(originals),
                 "files": files, "public_ai_enabled": False, "synchronization_enabled": False,
                 "source_certification": "archived_ipindia_only_status_unknown"}
+    if source_commit:
+        manifest.update(source_commit=source_commit, hosted_extracts_supported=True)
     raw = json.dumps(manifest, ensure_ascii=False, sort_keys=True, indent=2).encode("utf-8")
     (output / "release-manifest.json").write_bytes(raw)
     return {"files": len(files), "originals": len(originals), "bytes": sum(x["bytes"] for x in files.values()),
@@ -101,5 +106,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--root", type=Path, default=ROOT)
+    parser.add_argument("--source-commit", help="Exact commit exported to the staged source root")
     args = parser.parse_args()
-    print(json.dumps(prepare(args.output, args.root)))
+    print(json.dumps(prepare(args.output, args.root, source_commit=args.source_commit)))

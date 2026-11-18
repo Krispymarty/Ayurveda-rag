@@ -42,6 +42,7 @@ class DeploymentConfig:
     mode: str
     public_origin: str | None = None
     allowed_hosts: tuple[str, ...] = ()
+    hosted_answers: bool = False
 
     @property
     def public_research(self):
@@ -70,8 +71,11 @@ def load_deployment_config(environ=None):
     mode = env.get("AYURIP_DEPLOYMENT_MODE", "local_internal")
     if mode not in {"local_internal", "public_research"}:
         raise ValueError("invalid_deployment_mode")
+    answers = env.get("AYURIP_HOSTED_ANSWERS", "0")
+    if answers not in {"0", "1"}:
+        raise ValueError("invalid_hosted_answers_setting")
     if mode == "local_internal":
-        if env.get("AYURIP_PUBLIC_ORIGIN") or env.get("AYURIP_ALLOWED_HOSTS"):
+        if answers == "1" or env.get("AYURIP_PUBLIC_ORIGIN") or env.get("AYURIP_ALLOWED_HOSTS"):
             raise ValueError("public_configuration_requires_public_mode")
         return DeploymentConfig(mode)
     origin = _origin(env.get("AYURIP_PUBLIC_ORIGIN", ""))
@@ -85,4 +89,4 @@ def load_deployment_config(environ=None):
         if len(values) > 16 or any(not value.strip() for value in values):
             raise ValueError("invalid_deployment_host_list")
         allowed.extend(_authority(value.strip()) for value in values)
-    return DeploymentConfig(mode, origin, tuple(dict.fromkeys(allowed)))
+    return DeploymentConfig(mode, origin, tuple(dict.fromkeys(allowed)), answers == "1")

@@ -23,12 +23,16 @@ def response(reason, *, status="abstained", generation_id=None):
             "demo": True, "scope": "ipindia_only", "provider": {}}
 
 
-def answer(question, search_fn, verify_fn, binding_check, *, primary=None, fallback=None):
+def policy_reason(question):
     if re.search(r"\b(?:ABS|TKDL|India Code|biological diversity|access[ -]and[ -]benefit[ -]sharing|benefit[ -]sharing)\b", question, re.I):
-        return response("unsupported_domain_in_demo")
-    policy = classify(question)
-    if not policy["allowed"]:
-        return response(policy["reason"])
+        return "unsupported_domain_in_demo"
+    return classify(question)["reason"]
+
+
+def answer(question, search_fn, verify_fn, binding_check, *, primary=None, fallback=None):
+    reason = policy_reason(question)
+    if reason:
+        return response(reason)
     try:
         setting = read_setting("AYURIP_FALLBACK_PROVIDER", "gemini")
         if setting not in {"gemini", "none"}:

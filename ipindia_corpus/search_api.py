@@ -26,7 +26,8 @@ from .grounded_answers import generate_answer, load_config, NOTICE
 from .http_security import configure_security
 from .readiness import Readiness
 from .cloud_config import load_deployment_config
-from . import demo_answers
+from . import demo_answers, hosted_answers
+from .demo_queries import retrieval_query
 
 DEPLOYMENT = load_deployment_config()
 
@@ -142,17 +143,29 @@ def _answer_capabilities():
         configured, provider = False, {}
     if DEPLOYMENT.public_research:
         configured, provider = False, {}
-    if demo_answers.enabled() and not DEPLOYMENT.public_research:
+    hosted = getattr(DEPLOYMENT, "hosted_answers", False)
+    if hosted or (not DEPLOYMENT.public_research and demo_answers.enabled()):
         from .inference import configured_identity
         try:
             identity = configured_identity()
         except Exception:
             identity = {}
+        available = bool(generation_id and counts.get("ipindia", 0) and identity)
+        if hosted:
+            try:
+                snapshot = _ensure_ready()
+                available = available and _hosted_binding(snapshot) and bool(hosted_answers.settings())
+                if available:
+                    primary, fallback = hosted_answers.providers()
+                    primary.session.close()
+                    fallback.session.close()
+            except Exception:
+                available = False
         return {"active_generation_id": generation_id, "index_available": bool(generation_id),
                 "active_source_document_counts": counts, "three_source_certified": certified,
                 "certification": certification, "provider_configured": bool(identity), "provider": identity,
-                "answer_generation_enabled": bool(generation_id and counts.get("ipindia", 0) and identity),
-                "answer_generation_reason": None if generation_id and counts.get("ipindia", 0) and identity else "demo_dependencies_unavailable",
+                "answer_generation_enabled": available, "hosted_answers_available": hosted and available,
+                "answer_generation_reason": None if available else "demo_dependencies_unavailable",
                 "answer_mode": "verified_extracts", "demo": True, "scope": "ipindia_only",
                 "public_release_ready": False, "deployment": DEPLOYMENT.mode,
                 "private_passport_enabled": False, "notice": demo_answers.DEMO_NOTICE}
@@ -162,12 +175,20 @@ def _answer_capabilities():
             "answer_generation_enabled": bool(certified and configured), "answer_mode": "verified_extracts",
             "answer_generation_reason": None if certified and configured else "three_source_not_certified" if not certified else "answer_generation_disabled",
             "public_release_ready": False, "deployment": DEPLOYMENT.mode,
-            "private_passport_enabled": False, "notice": NOTICE}
+            "private_passport_enabled": False, "hosted_answers_available": False, "notice": NOTICE}
 
 
 @app.get("/capabilities")
-def capabilities_endpoint():
-    return _answer_capabilities()
+def capabilities_endpoint(http_request: Request = None):
+    capabilities = _answer_capabilities()
+    if not capabilities.get("hosted_answers_available") or http_request is None:
+        return capabilities
+    key, _ = hosted_answers.settings()
+    response = JSONResponse(capabilities, headers={"Cache-Control": "no-store"})
+    if hosted_answers.browser_id(http_request.cookies.get(hosted_answers.COOKIE), key) is None:
+        response.set_cookie(hosted_answers.COOKIE, hosted_answers.issue_cookie(key), secure=True,
+                            httponly=True, samesite="strict", max_age=hosted_answers.COOKIE_AGE, path="/")
+    return response
 
 
 def _verify_answer_hit(hit, generation_id):
@@ -183,36 +204,85 @@ def _verify_answer_hit(hit, generation_id):
     verify_hit(expected, hit["text"], _documents(generation_id), root=ROOT, expected_chunk=expected)
 
 
+def _hosted_binding(snapshot):
+    binding = snapshot["binding"]
+    return binding[0] == "20261014T204940358650Z" and binding[3] == "v2"
+
+
+def _extract_response(request, http_request, *, hosted):
+    def reject(reason, status, retry=None):
+        headers = {"Cache-Control": "no-store"}
+        if retry is not None:
+            headers["Retry-After"] = str(retry)
+        return JSONResponse(status_code=status, headers=headers, content=demo_answers.response(
+            reason, status="unavailable" if status >= 500 or status == 429 else "abstained"))
+
+    if http_request is None:
+        return reject("http_request_required", 403)
+    origins = http_request.headers.getlist("origin")
+    expected_origin = DEPLOYMENT.public_origin if hosted else f"http://{http_request.headers.get('host')}"
+    if (hosted or origins) and origins != [expected_origin]:
+        return reject("same_origin_required", 403)
+    if not request.acknowledged_nonconfidential or not request.acknowledged_external_processing:
+        return reject("external_processing_consent_required", 403)
+    if request.source not in (None, "ipindia"):
+        return demo_answers.response("source_not_available_in_demo")
+    if hosted:
+        reason = demo_answers.policy_reason(request.question)
+        if reason:
+            return demo_answers.response(reason)
+    try:
+        snapshot = _ensure_ready()
+        binding = snapshot["binding"]
+        gid = binding[0]
+        if hosted and not _hosted_binding(snapshot):
+            return reject("answer_generation_unavailable", 503)
+    except Exception:
+        return reject("search_not_ready", 503)
+
+    def bound():
+        if _ensure_ready()["binding"] != binding:
+            raise ValueError("active_generation_changed")
+
+    def demo_search(question, top_k=5):
+        response = search(question, top_k=top_k, source="ipindia", domain=request.domain)
+        if response["generation_id"] != gid or any(hit.get("source") != "ipindia" for hit in response["hits"]):
+            raise ValueError("demo_source_or_generation_changed")
+        return response
+
+    kwargs = {}
+    if hosted:
+        settings = hosted_answers.settings()
+        if settings is None:
+            return reject("answer_dependency_unavailable", 503)
+        key, dsn = settings
+        browser = hosted_answers.browser_id(http_request.cookies.get(hosted_answers.COOKIE), key)
+        if browser is None:
+            return reject("answer_session_required", 403)
+        try:
+            primary, fallback = hosted_answers.providers()
+            kwargs.update(primary=primary, fallback=fallback)
+        except Exception:
+            return reject("answer_dependency_unavailable", 503)
+        try:
+            with hosted_answers.reserve(dsn, browser):
+                result = demo_answers.answer(request.question, demo_search, _verify_answer_hit, bound, **kwargs)
+        except hosted_answers.AdmissionError as exc:
+            return reject(str(exc), exc.status, exc.retry_after)
+        finally:
+            primary.session.close()
+            fallback.session.close()
+    else:
+        result = demo_answers.answer(request.question, demo_search, _verify_answer_hit, bound)
+    return JSONResponse(status_code=503 if result["status"] == "unavailable" else 200,
+                        headers={"Cache-Control": "no-store"}, content=result)
+
+
 @app.post("/answer")
 def answer_endpoint(request: AnswerRequest, http_request: Request = None):
-    if demo_answers.enabled() and not DEPLOYMENT.public_research:
-        if http_request is None:
-            return JSONResponse(status_code=403, content=demo_answers.response("http_request_required"))
-        origin = http_request.headers.get("origin")
-        if origin and origin != f"http://{http_request.headers.get('host')}":
-            return JSONResponse(status_code=403, content=demo_answers.response("same_origin_required"))
-        if not request.acknowledged_nonconfidential or not request.acknowledged_external_processing:
-            return JSONResponse(status_code=403, content=demo_answers.response("external_processing_consent_required"))
-        if request.source not in (None, "ipindia"):
-            return demo_answers.response("source_not_available_in_demo")
-        try:
-            snapshot = _ensure_ready()
-            gid = snapshot["binding"][0]
-        except Exception:
-            return JSONResponse(status_code=503, content=demo_answers.response("search_not_ready", status="unavailable"))
-
-        def bound():
-            if _ensure_ready()["binding"][0] != gid:
-                raise ValueError("active_generation_changed")
-
-        def demo_search(question, top_k=5):
-            response = search(question, top_k=5, source="ipindia", domain=request.domain)
-            if response["generation_id"] != gid or any(hit.get("source") != "ipindia" for hit in response["hits"]):
-                raise ValueError("demo_source_or_generation_changed")
-            return response
-
-        result = demo_answers.answer(request.question, demo_search, _verify_answer_hit, bound)
-        return JSONResponse(status_code=503 if result["status"] == "unavailable" else 200, content=result)
+    hosted = getattr(DEPLOYMENT, "hosted_answers", False)
+    if hosted or (not DEPLOYMENT.public_research and demo_answers.enabled()):
+        return _extract_response(request, http_request, hosted=hosted)
     if DEPLOYMENT.public_research:
         return JSONResponse(status_code=503, content={"status": "unavailable", "answer_text": "", "claims": [],
             "reason": "three_source_not_certified", "notice": NOTICE,
@@ -389,9 +459,15 @@ def search(query: str, top_k: int = 5, source: str | None = None,
 def search_endpoint(q: str = Query(min_length=2, max_length=500),
                     top_k: int = Query(default=5, ge=1, le=20),
                     source: str | None = Query(default=None, pattern="^(ipindia|indiacode|tkdl)$"),
-                    domain: str | None = Query(default=None, max_length=80)):
+                    domain: str | None = Query(default=None, max_length=80),
+                    adapt_hindi: bool = False):
+    if adapt_hindi and source not in (None, "ipindia"):
+        raise HTTPException(status_code=422, detail="hindi_adapter_ipindia_only")
     try:
         _ensure_ready()
+        if adapt_hindi:
+            result = search(retrieval_query(q), top_k, "ipindia", domain)
+            return {**result, "query": q}
         return search(q, top_k, source, domain)
     except Exception as exc:
         logger.exception("Search unavailable")

@@ -78,6 +78,8 @@ class SecurityMiddleware:
                             b"x-frame-options": b"DENY",
                             b"referrer-policy": b"no-referrer",
                             b"permissions-policy": b"camera=(), microphone=(), geolocation=()"}
+        if path.rstrip("/") in {"/answer", "/capabilities"}:
+            security_headers[b"cache-control"] = b"no-store"
         if self.deployment.public_research:
             security_headers[b"strict-transport-security"] = b"max-age=31536000"
         response_started = False
@@ -162,7 +164,10 @@ class SecurityMiddleware:
         if route:
             client = scope.get("client")
             peer = str(client[0]) if client else "unknown-peer"
-            retry = self.buckets.take(peer, route) if self.rate_enabled else 0
+            # Hosted answers use durable browser/site quotas and a shared DB
+            # lock. The transport peer is the same TLS proxy for many browsers.
+            use_peer_limit = self.rate_enabled and not (route == "answer" and self.deployment.hosted_answers)
+            retry = self.buckets.take(peer, route) if use_peer_limit else 0
             if retry:
                 await reject(429, "rate_limit_exceeded", retry)
                 return

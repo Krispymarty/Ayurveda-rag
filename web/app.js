@@ -114,23 +114,46 @@
     announce(`${data.hits.length} evidence passages found.`);
   }
   function demoMode() { return state.demoEnabled && $('research-mode').value === 'answer'; }
-  function renderAnswer(data, elapsed) {
+  function addEvidenceAction(parent, selection) {
+    const button = node('button', 'text-button evidence-action', 'Inspect matching passages');
+    button.type = 'button';
+    button.addEventListener('click', () => {
+      $('question').value = selection.query;
+      $('question').dispatchEvent(new Event('input'));
+      $('domain-filter').value = selection.domain;
+      $('source-filter').value = 'ipindia';
+      $('research-mode').value = 'search';
+      $('research-mode').dispatchEvent(new Event('change'));
+      filterCount();
+      runQuery(selection, {inspect: true});
+    });
+    parent.append(button);
+  }
+  function renderAnswer(data, elapsed, selection) {
     const unavailable = data.status === 'unavailable';
     const titles = {personal_legal_or_medical_advice: 'Research or personal advice?', current_legal_status_unverified: 'Current legal status is not established'};
     $('results-title').textContent = data.status === 'answered' ? 'Verified research extracts' : unavailable ? 'AI service temporarily unavailable' : titles[data.reason] || 'No supporting extract selected';
     $('results-meta').textContent = `IP India demo · ${Math.round(elapsed)} ms · ${data.provider?.model || 'No model call'}`;
     const fragment = document.createDocumentFragment();
-    fragment.append(node('p', 'result-notice', data.notice));
+    if (data.notice) fragment.append(node('p', 'result-notice', data.notice));
     if (!data.claims?.length) {
       const reasons = {
         personal_legal_or_medical_advice: 'The request-policy check classified this question as personal legal or medical advice. If you meant archived research, ask what a named section or rule says.',
         current_legal_status_unverified: 'The archive cannot establish whether a provision is currently in force.',
         insufficient_relevant_evidence: 'The model did not select enough directly relevant archived evidence.',
         provider_rate_limited: 'The model provider has reached its request limit. Please wait before trying again.',
+        answer_daily_limit: 'This site has reached its daily limit for AI answers.',
+        answer_browser_limit: 'This browser has reached its hourly limit for AI answers.',
+        service_busy: 'Another AI request is in progress.',
+        answer_session_required: 'The AI browser session expired. You can try again or inspect the archive.',
+        answer_quota_unavailable: 'AI answers are temporarily unavailable.',
         provider_auth_failed: 'The model provider rejected the configured credentials. The service owner needs to check its configuration.',
         provider_request_rejected: 'The model provider rejected this request. No quotation was published; this does not mean the archive has no relevant provision.'
       };
-      fragment.append(node('p', 'state-block', `${reasons[data.reason] || `No extract was published: ${(data.reason || 'insufficient evidence').replaceAll('_', ' ')}.`} You can switch to evidence search to inspect available passages.`));
+      const block = node('div', 'state-block');
+      block.append(node('p', '', `${reasons[data.reason] || `No extract was published: ${(data.reason || 'insufficient evidence').replaceAll('_', ' ')}.`}`));
+      addEvidenceAction(block, selection);
+      fragment.append(block);
     }
     (data.claims || []).forEach((claim) => {
       const article = node('article', 'evidence-hit');
@@ -156,17 +179,22 @@
       return await response.json();
     } finally { window.clearTimeout(timer); }
   }
-  async function submit(event) {
+  function submit(event) {
     event.preventDefault();
+    return runQuery({query: $('question').value.trim(), source: $('source-filter').value,
+                     domain: $('domain-filter').value, topK: $('top-k').value});
+  }
+  async function runQuery(selection, {inspect = false} = {}) {
     if (!state.ready || state.pending) { announce('Evidence search is preparing or unavailable. Your research question has been kept.'); return; }
-    const query = $('question').value.trim();
+    const {query, source, domain, topK} = selection;
+    const answerMode = !inspect && demoMode();
     if (query.length < 2 || query.length > 500) {
       $('question').setCustomValidity('Enter a research question between 2 and 500 characters.');
       $('question').reportValidity();
       return;
     }
     $('question').setCustomValidity('');
-    if (demoMode() && !$('demo-consent').checked) {
+    if (answerMode && !$('demo-consent').checked) {
       $('demo-consent').setCustomValidity('Confirm non-confidential input and cloud-processing consent for the demo.');
       $('demo-consent').reportValidity();
       return;
@@ -190,34 +218,40 @@
       $('results-title').focus({preventScroll: true});
       $('research-results').scrollIntoView({block: 'start'});
     }
-    const params = new URLSearchParams({q: query, top_k: $('top-k').value});
-    if ($('source-filter').value) params.set('source', $('source-filter').value);
-    if ($('domain-filter').value) params.set('domain', $('domain-filter').value);
+    const params = new URLSearchParams({q: query, top_k: inspect ? '5' : topK});
+    if (inspect) {
+      params.set('adapt_hindi', 'true');
+      params.set('source', 'ipindia');
+    } else if (source) params.set('source', source);
+    if (domain) params.set('domain', domain);
     let timedOut = false;
-    const timer = window.setTimeout(() => { timedOut = true; controller.abort(); }, demoMode() ? 105000 : 45000);
+    const timer = window.setTimeout(() => { timedOut = true; controller.abort(); }, answerMode ? 105000 : 45000);
     const started = performance.now();
     try {
-      const answerMode = demoMode();
       const response = await fetch(answerMode ? '/answer' : `/search?${params}`, {
         credentials: 'same-origin', cache: 'no-store', signal: controller.signal,
         ...(answerMode ? {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({
-          question: query, source: $('source-filter').value || 'ipindia', domain: $('domain-filter').value || null,
+          question: query, source: source || 'ipindia', domain: domain || null,
           top_k: 5, acknowledged_nonconfidential: $('demo-consent').checked,
           acknowledged_external_processing: $('demo-consent').checked
         })} : {})
       });
       if (sequence !== state.sequence) return;
-      if (!response.ok && !(answerMode && response.status === 503)) throw new Error(`http_${response.status}`);
+      if (!response.ok && !(answerMode && [403, 429, 503].includes(response.status))) throw new Error(`http_${response.status}`);
       const data = await response.json();
       if (sequence !== state.sequence) return;
-      if (answerMode) renderAnswer(data, performance.now() - started);
-      else renderSearch(data, performance.now() - started);
+      if (answerMode) {
+        if (!data.status) Object.assign(data, {status: 'unavailable', reason: data.detail});
+        renderAnswer(data, performance.now() - started, selection);
+        if (data.reason === 'answer_session_required') loadCapabilities();
+      } else renderSearch(data, performance.now() - started);
     } catch (error) {
       if (sequence !== state.sequence || (error.name === 'AbortError' && !timedOut)) return;
       $('results-title').textContent = 'Research is temporarily unavailable';
       const rateLimited = error.message === 'http_429';
-      message(rateLimited ? 'Please pause before trying again.' : timedOut ? 'The request took too long.' : 'We could not complete this request.', rateLimited ? 'The service is receiving too many requests. Wait a moment and try again.' : 'Your research question is still in the field. Check service status or try again shortly.', true);
+      const block = message(rateLimited ? 'Please pause before trying again.' : timedOut ? 'The request took too long.' : 'We could not complete this request.', rateLimited ? 'The service is receiving too many requests. Wait a moment and try again.' : 'Your research question is still in the field. Check service status or try again shortly.', true);
       announce(rateLimited ? 'Too many requests. Please wait and try again.' : 'The request failed. Your research question has been preserved.');
+      if (answerMode) addEvidenceAction(block, selection);
       if (error.message === 'http_503') checkHealth();
     } finally {
       window.clearTimeout(timer);
@@ -307,8 +341,11 @@
     if (state.healthPending) return;
     state.healthPending = true;
     $('retry-service').disabled = true;
-    try { showHealth(await requestJson('/health', {}, 10000, true)); }
-    catch (_) { showHealth(null); }
+    try {
+      const wasReady = state.ready;
+      showHealth(await requestJson('/health', {}, 10000, true));
+      if (state.ready && !wasReady) loadCapabilities();
+    } catch (_) { showHealth(null); }
     finally { state.healthPending = false; $('retry-service').disabled = false; }
   }
   $('search-form').addEventListener('submit', submit);
@@ -373,11 +410,17 @@
   }
   $('research-mode').addEventListener('change', () => { $('demo-consent').checked = false; updateSubmit(); });
   $('demo-consent').addEventListener('change', () => $('demo-consent').setCustomValidity(''));
-  requestJson('/capabilities').then((capabilities) => {
-    state.demoEnabled = capabilities.demo === true;
-    $('demo-controls').hidden = !state.demoEnabled;
+  async function loadCapabilities() {
+    try {
+      const capabilities = await requestJson('/capabilities');
+      state.demoEnabled = capabilities.demo === true && capabilities.answer_generation_enabled === true;
+      $('demo-controls').hidden = !state.demoEnabled;
+    } catch (_) {
+      state.demoEnabled = false;
+      $('demo-controls').hidden = true;
+    }
     updateSubmit();
-  }).catch(() => {});
+  }
   checkHealth();
   loadSources();
 })();
