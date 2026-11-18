@@ -43,6 +43,8 @@ app = FastAPI(title="AyurIP Evidence Search", version="0.1.0", lifespan=lifespan
               openapi_url=None if DEPLOYMENT.public_research else "/openapi.json")
 configure_security(app)
 app.mount("/assets", StaticFiles(directory=ROOT / "web", check_dir=False), name="assets")
+app.mount("/Images", StaticFiles(directory=ROOT / "web/images", check_dir=False), name="images_cap")
+app.mount("/images", StaticFiles(directory=ROOT / "web/images", check_dir=False), name="images_low")
 logger = logging.getLogger(__name__)
 RANKING_REVISIONS = {"v1": hashlib.sha256(Path(retrieval_legacy.__file__).read_bytes()).hexdigest(),
                      "v2": hashlib.sha256(Path(retrieval.__file__).read_bytes()).hexdigest()}
@@ -89,11 +91,37 @@ class AnswerRequest(BaseModel):
 
 
 @app.get("/", include_in_schema=False)
+@app.get("/index.html", include_in_schema=False)
 def home_endpoint():
     path = ROOT / "web/index.html"
     if not path.is_file():
         raise HTTPException(status_code=503, detail="interface_unavailable")
     return FileResponse(path, media_type="text/html", headers={"Cache-Control": "no-store"})
+
+
+@app.get("/research", include_in_schema=False)
+@app.get("/research.html", include_in_schema=False)
+def research_endpoint():
+    path = ROOT / "web/research.html"
+    if not path.is_file():
+        raise HTTPException(status_code=503, detail="interface_unavailable")
+    return FileResponse(path, media_type="text/html", headers={"Cache-Control": "no-store"})
+
+
+@app.get("/styles.css", include_in_schema=False)
+def styles_endpoint():
+    path = ROOT / "web/styles.css"
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="not_found")
+    return FileResponse(path, media_type="text/css")
+
+
+@app.get("/app.js", include_in_schema=False)
+def app_js_endpoint():
+    path = ROOT / "web/app.js"
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail="not_found")
+    return FileResponse(path, media_type="application/javascript")
 
 
 def _certification_summary():
