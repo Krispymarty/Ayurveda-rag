@@ -19,6 +19,7 @@ import requests
 from .grounded_answers import _unique_object
 from .inference import PROVIDER_FAILURES, _validate
 from .llm_experiment import ExperimentFailure
+from .request_metrics import outcome, stage
 
 ROOT = Path(__file__).resolve().parents[1]
 ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions'
@@ -130,9 +131,26 @@ class GroqCandidate:
     def chat_with_deadline(self, fields, deadline):
         self.last_call_diagnostics = {}
         try:
-            return self._chat(fields, deadline)
+            with stage("groq_completion"):
+                return self._chat(fields, deadline)
         except (ValueError, TypeError, KeyError, AttributeError, RecursionError):
             raise ExperimentFailure('provider_invalid_response') from None
+
+    @staticmethod
+    def _rejection_category(response, deadline):
+        # Groq error bodies can contain generated text. Keep only a fixed enum.
+        raw = bytearray()
+        try:
+            for block in response.iter_content(chunk_size=1024):
+                raw.extend(block)
+                if len(raw) > 4096 or time.monotonic() >= deadline:
+                    return "groq_400_other"
+            code = json.loads(raw).get("error", {}).get("code")
+            if code in {"json_validate_failed", "context_length_exceeded", "invalid_request_error"}:
+                return "groq_400_" + code
+        except (AttributeError, TypeError, ValueError, RecursionError, requests.RequestException):
+            pass
+        return "groq_400_other"
 
     def _chat(self, fields, supplied_deadline):
         if self.failed_binding:
@@ -186,6 +204,8 @@ class GroqCandidate:
             if type(status) is int and 100 <= status <= 599:
                 self.last_call_diagnostics['http_status'] = status
             if status != 200:
+                if status == 400:
+                    outcome(self._rejection_category(response, deadline))
                 reason = ('provider_redirect_rejected' if 300 <= status < 400 else
                           'provider_auth_failed' if status in (401, 403) else
                           'provider_rate_limited' if status == 429 else

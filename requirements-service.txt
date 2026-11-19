@@ -4,3 +4,4 @@ uvicorn>=0.34,<1
 psycopg[binary]>=3.2,<4
 sentence-transformers>=3.4,<6
 huggingface-hub>=0.29,<2
+psycopg-pool==3.3.3

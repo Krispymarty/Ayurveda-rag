@@ -20,15 +20,13 @@ class ReleaseSearchTests(unittest.TestCase):
 
         class Connection:
             def execute(self, sql, parameters=None):
-                if "SELECT key,value FROM app_state" in sql:
-                    # Publication commits immediately after this snapshot.
-                    return Cursor([('active_generation', 'old'), ('ranking_version', 'v1')])
-                if "WHERE key='active_generation'" in sql:
-                    return Cursor([('old',)])
-                if "WHERE key='ranking_version'" in sql:
-                    return Cursor([('v2',)])
-                if 'SELECT model_revision,manifest_sha256' in sql:
-                    return Cursor([('revision', hashlib.sha256(b'{}').hexdigest())])
+                if "FROM app_state active" in sql:
+                    # A later publish does not change the captured binding.
+                    return Cursor([("old", "v1", 1, 1, "revision", hashlib.sha256(b"{}").hexdigest())])
+                if sql == search_api.retrieval_legacy.SEARCH_SQL:
+                    assert parameters["generation_id"] == "old"
+                elif sql == search_api.retrieval.SEARCH_SQL:
+                    raise AssertionError("ranker changed after binding snapshot")
                 return Cursor([])
             def close(self):
                 pass

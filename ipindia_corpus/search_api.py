@@ -7,6 +7,7 @@ import re
 import json
 import hashlib
 import logging
+import os
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -28,21 +29,34 @@ from .readiness import Readiness
 from .cloud_config import load_deployment_config
 from . import demo_answers, hosted_answers
 from .demo_queries import retrieval_query
+from .inference import PROVIDER_FAILURES
+from .read_pool import connection as read_connection, open_pool
+from .request_metrics import RequestMetricsMiddleware, stage, outcome
 
 DEPLOYMENT = load_deployment_config()
+READ_POOL = None
 
 
 @asynccontextmanager
 async def lifespan(app):
+    global READ_POOL
+    if DEPLOYMENT.public_research and os.environ.get("DATABASE_URL"):
+        READ_POOL = open_pool()
     readiness.start()
-    yield
-    readiness.close()
+    try:
+        yield
+    finally:
+        readiness.close()
+        if READ_POOL is not None:
+            READ_POOL.close()
+            READ_POOL = None
 
 app = FastAPI(title="AyurIP Evidence Search", version="0.1.0", lifespan=lifespan,
               docs_url=None if DEPLOYMENT.public_research else "/docs",
               redoc_url=None if DEPLOYMENT.public_research else "/redoc",
               openapi_url=None if DEPLOYMENT.public_research else "/openapi.json")
 configure_security(app)
+app.add_middleware(RequestMetricsMiddleware)
 app.mount("/assets", StaticFiles(directory=ROOT / "web", check_dir=False), name="assets")
 logger = logging.getLogger(__name__)
 RANKING_REVISIONS = {"v1": hashlib.sha256(Path(retrieval_legacy.__file__).read_bytes()).hexdigest(),
@@ -211,7 +225,8 @@ def _verify_answer_hit(hit, generation_id):
     expected_title = expected.get("document_title") or expected.get("title")
     if hit.get("title") != expected_title:
         raise ValueError("answer_title_mismatch")
-    verify_hit(expected, hit["text"], _documents(generation_id), root=ROOT, expected_chunk=expected)
+    with stage("answer_archive_verification"):
+        verify_hit(expected, hit["text"], _documents(generation_id), root=ROOT, expected_chunk=expected)
 
 
 def _hosted_binding(snapshot):
@@ -221,6 +236,7 @@ def _hosted_binding(snapshot):
 
 def _extract_response(request, http_request, *, hosted):
     def reject(reason, status, retry=None):
+        outcome(reason)
         headers = {"Cache-Control": "no-store"}
         if retry is not None:
             headers["Retry-After"] = str(retry)
@@ -240,6 +256,7 @@ def _extract_response(request, http_request, *, hosted):
     if hosted:
         reason = demo_answers.policy_reason(request.question)
         if reason:
+            outcome("policy_abstention")
             return demo_answers.response(reason)
     try:
         snapshot = _ensure_ready()
@@ -255,7 +272,8 @@ def _extract_response(request, http_request, *, hosted):
             raise ValueError("active_generation_changed")
 
     def demo_search(question, top_k=5):
-        response = search(question, top_k=top_k, source="ipindia", domain=request.domain)
+        limit = DEPLOYMENT.answer_candidates if hosted else top_k
+        response = search(question, top_k=limit, source="ipindia", domain=request.domain)
         if response["generation_id"] != gid or any(hit.get("source") != "ipindia" for hit in response["hits"]):
             raise ValueError("demo_source_or_generation_changed")
         return response
@@ -284,6 +302,10 @@ def _extract_response(request, http_request, *, hosted):
             fallback.session.close()
     else:
         result = demo_answers.answer(request.question, demo_search, _verify_answer_hit, bound)
+    if result.get("status") in {"answered", "abstained", "unavailable"}:
+        outcome(result["status"])
+    if result.get("reason") in PROVIDER_FAILURES:
+        outcome(result["reason"])
     return JSONResponse(status_code=503 if result["status"] == "unavailable" else 200,
                         headers={"Cache-Control": "no-store"}, content=result)
 
@@ -332,35 +354,41 @@ def _load_model(record):
     return model
 
 
-def _binding():
-    connection = _connect()
-    try:
-        state = dict(connection.execute("SELECT key,value FROM app_state WHERE key IN ('active_generation','ranking_version')").fetchall())
-        gid = state.get("active_generation")
-        if not gid:
-            raise ValueError("no_active_index")
-        version = state.get("ranking_version", "v1")
-        row = connection.execute("SELECT documents,chunks,model_revision,manifest_sha256 FROM index_generations WHERE generation_id=%s", (gid,)).fetchone()
-        if not row or row[2] != model_revision() or version not in RANKING_REVISIONS:
-            raise ValueError("index_binding_invalid")
+def _read_binding(connection):
+    # One statement observes generation, ranker and index metadata together.
+    with stage("db_binding"):
+        row = connection.execute("""
+            SELECT active.value, coalesce(rank.value, 'v1'), g.documents, g.chunks,
+                   g.model_revision, g.manifest_sha256
+            FROM app_state active
+            LEFT JOIN app_state rank ON rank.key = 'ranking_version'
+            LEFT JOIN index_generations g ON g.generation_id = active.value
+            WHERE active.key = 'active_generation'
+        """).fetchone()
+    if not row:
+        raise ValueError("no_active_index")
+    gid, version, documents, chunks, revision, indexed_hash = row
+    if revision != model_revision() or version not in RANKING_REVISIONS:
+        raise ValueError("index_binding_invalid")
+    with stage("manifest_verification"):
         manifest_hash = hashlib.sha256((ROOT / "data/generations" / gid / "manifest.json").read_bytes()).hexdigest()
-        if row[3] != manifest_hash:
-            raise ValueError("index_manifest_changed")
-        return (gid, manifest_hash, row[2], version, RANKING_REVISIONS[version]), row[:2]
-    finally:
-        connection.close()
+    if indexed_hash != manifest_hash:
+        raise ValueError("index_manifest_changed")
+    return (gid, manifest_hash, revision, version, RANKING_REVISIONS[version]), (documents, chunks)
+
+
+def _binding():
+    with read_connection(READ_POOL, _connect) as connection:
+        return _read_binding(connection)
 
 
 def _initialize(record):
     started = time.monotonic()
     binding, counts = _binding()
-    connection = _connect()
-    try:
+    with read_connection(READ_POOL, _connect) as connection:
         actual = connection.execute("SELECT (SELECT count(*) FROM corpus_documents WHERE generation_id=%s),(SELECT count(*) FROM corpus_chunks c JOIN embedding_cache e ON c.content_hash=e.content_hash AND e.model_revision=%s WHERE c.generation_id=%s)", (binding[0], binding[2], binding[0])).fetchone()
         if actual != counts:
             raise ValueError("active_index_incomplete")
-    finally:
-        connection.close()
     record("database", time.monotonic() - started)
     started = time.monotonic()
     _, documents, chunks = generation(ROOT, generation_id=binding[0])
@@ -415,42 +443,35 @@ def verify_hit(metadata, text, documents, root=ROOT, *, expected_chunk=None):
 def search(query: str, top_k: int = 5, source: str | None = None,
            domain: str | None = None) -> dict:
     revision = model_revision()
-    vector = _model().encode(["query: " + query], normalize_embeddings=True)[0]
+    with stage("embedding"):
+        vector = _model().encode(["query: " + query], normalize_embeddings=True)[0]
     embedding = "[" + ",".join(str(float(value)) for value in vector) + "]"
     provision = re.search(r"\b(section|rule)\s+(\d+[a-z]?)\b", query, re.I)
     section = provision.group(2).lower() if provision and provision.group(1).lower() == "section" else None
     rule = provision.group(2).lower() if provision and provision.group(1).lower() == "rule" else None
-    connection = _connect()
-    try:
-        # Read the release pair in one PostgreSQL statement so an activation
-        # between statements cannot mix an older generation with a newer ranker.
-        selection = dict(connection.execute("SELECT key,value FROM app_state WHERE key IN ('active_generation','ranking_version')").fetchall())
-        active = (selection['active_generation'],) if selection.get('active_generation') else None
-        if not active:
-            raise ValueError("no indexed corpus generation")
-        indexed_revision = connection.execute("SELECT model_revision,manifest_sha256 FROM index_generations WHERE generation_id=%s", (active[0],)).fetchone()
-        if not indexed_revision or indexed_revision[0] != revision:
-            raise ValueError("active_model_revision_mismatch")
-        _documents(active[0])
-        if hashlib.sha256((ROOT / "data" / "generations" / active[0] / "manifest.json").read_bytes()).hexdigest() != indexed_revision[1]:
-            raise ValueError("active_manifest_hash_mismatch")
-        ranking_version = selection.get('ranking_version', 'v1')
-        if ranking_version not in ("v1", "v2"):
-            raise ValueError("unsupported_ranking_version")
+    with read_connection(READ_POOL, _connect) as connection:
+        binding, _ = _read_binding(connection)
+        gid, _, _, ranking_version, _ = binding
+        # Check both keys against the startup snapshot even for direct callers.
+        _documents(gid)
+        if READ_POOL is not None and readiness.require()["binding"] != binding:
+            readiness.invalidate()
+            raise ValueError("active_binding_changed")
         ranker = retrieval if ranking_version == "v2" else retrieval_legacy
-        rows = connection.execute(ranker.SEARCH_SQL, {"query": query, "source": source, "domain": domain,
-                                               "embedding": embedding, "revision": revision, "limit": top_k,
-                                               "section": section, "rule": rule, "generation_id": active[0], **ranker.query_parameters(query)}).fetchall()
-    finally:
-        connection.close()
+        with stage("db_rank"):
+            rows = connection.execute(ranker.SEARCH_SQL, {"query": query, "source": source, "domain": domain,
+                                              "embedding": embedding, "revision": revision, "limit": top_k,
+                                              "section": section, "rule": rule, "generation_id": gid,
+                                              **ranker.query_parameters(query)}).fetchall()
     hits = []
-    documents = _documents(active[0])
-    published_chunks = _published_chunks(active[0])
+    documents = _documents(gid)
+    published_chunks = _published_chunks(gid)
     for chunk_id, text, metadata, score in rows:
         expected = published_chunks.get(chunk_id)
         if expected is None:
             raise ValueError("published_chunk_missing")
-        verify_hit(metadata, text, documents, expected_chunk=expected)
+        with stage("archive_verification"):
+            verify_hit(metadata, text, documents, expected_chunk=expected)
         hits.append({"chunk_id": chunk_id, "document_id": metadata["document_id"],
                      "title": metadata.get("document_title") or metadata.get("title"),
                      "source": metadata["source"], "legal_domain": metadata["legal_domain"],
@@ -460,7 +481,7 @@ def search(query: str, top_k: int = 5, source: str | None = None,
                      "page_start": metadata.get("page_start"), "page_end": metadata.get("page_end"),
                      "status": "unknown", "raw_sha256": metadata["raw_sha256"],
                      "text": text, "score": float(score), "short_unit": metadata.get("short_unit", False)})
-    return {"generation_id": active[0], "ranking_version": ranking_version,
+    return {"generation_id": gid, "ranking_version": ranking_version,
             "ranking_revision": RANKING_REVISIONS[ranking_version], "query": query, "hits": hits,
             "notice": "Evidence search only. Legal status is unverified; results do not establish current law."}
 
@@ -480,7 +501,7 @@ def search_endpoint(q: str = Query(min_length=2, max_length=500),
             return {**result, "query": q}
         return search(q, top_k, source, domain)
     except Exception as exc:
-        logger.exception("Search unavailable")
+        outcome("search_dependency_error")
         reason = readiness.status().get("reason") or "search_unavailable"
         raise HTTPException(status_code=503, detail=reason) from exc
 

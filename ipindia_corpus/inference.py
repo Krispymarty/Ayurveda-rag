@@ -19,6 +19,7 @@ import requests
 
 from .grounded_answers import _unique_object
 from .llm_experiment import ExperimentFailure
+from .request_metrics import stage
 
 ROOT = Path(__file__).resolve().parents[1]
 API = 'https://generativelanguage.googleapis.com'
@@ -176,8 +177,13 @@ class GeminiProvider:
                 'model_digest': None, 'external_processing': True}
 
     def _request(self, operation, payload, deadline):
-        if operation not in {'countTokens', 'generateContent'}:
+        stages = {"countTokens": "gemini_count_tokens", "generateContent": "gemini_completion"}
+        if operation not in stages:
             raise ExperimentFailure('gemini_configuration_invalid')
+        with stage(stages[operation]):
+            return self._send(operation, payload, deadline)
+
+    def _send(self, operation, payload, deadline):
         started, response = time.monotonic(), None
         remaining = deadline - started
         if remaining <= 0:

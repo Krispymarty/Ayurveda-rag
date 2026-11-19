@@ -11,6 +11,7 @@ import time
 import psycopg
 from psycopg.conninfo import conninfo_to_dict
 
+from .request_metrics import stage
 from .groq_candidate import DEFAULT_MODEL as GROQ_MODEL
 from .inference import DEFAULT_MODEL as GEMINI_MODEL, make_provider, provider_identity, read_setting
 
@@ -85,31 +86,37 @@ def browser_id(cookie, key, now=None):
 @contextmanager
 def reserve(dsn, browser):
     try:
-        connection = psycopg.connect(dsn, autocommit=True, connect_timeout=3)
+        with stage("quota_connect"):
+            connection = psycopg.connect(dsn, autocommit=True, connect_timeout=3)
     except psycopg.Error:
         raise AdmissionError("answer_quota_unavailable", 503) from None
     with connection:
         try:
-            connection.execute("SET statement_timeout = '3s'")
-            if not connection.execute("SELECT pg_try_advisory_lock(%s)", (ANSWER_LOCK,)).fetchone()[0]:
-                raise AdmissionError("service_busy", 429, 1)
-            with connection.transaction():
-                now = connection.execute("SELECT floor(extract(epoch FROM now()))::bigint").fetchone()[0]
-                day, hour = now // 86400 * 86400, now // 3600 * 3600
-                rows = ((86400, day, "site", DAILY_LIMIT), (3600, hour, browser, BROWSER_LIMIT))
-                for period, start, subject, cap in rows:
-                    inserted = connection.execute(
-                        """INSERT INTO answer_quota.usage AS current (period, started, subject)
-                        VALUES (%s, %s, %s)
-                        ON CONFLICT (period, started, subject) DO UPDATE SET used = current.used + 1
-                        WHERE current.used < %s RETURNING used""",
-                        (period, start, subject, cap),
-                    )
-                    if inserted.fetchone() is None:
-                        # Both rows roll back when either limit is exhausted.
-                        raise AdmissionError("answer_daily_limit" if period == 86400 else "answer_browser_limit",
-                                             429, start + period - now)
-                connection.execute("DELETE FROM answer_quota.usage WHERE started < %s", (day - 86400,))
+            with stage("quota_admission"):
+                _claim(connection, browser)
         except psycopg.Error:
             raise AdmissionError("answer_quota_unavailable", 503) from None
         yield
+
+
+def _claim(connection, browser):
+    connection.execute("SET statement_timeout = '3s'")
+    if not connection.execute("SELECT pg_try_advisory_lock(%s)", (ANSWER_LOCK,)).fetchone()[0]:
+        raise AdmissionError("service_busy", 429, 1)
+    with connection.transaction():
+        now = connection.execute("SELECT floor(extract(epoch FROM now()))::bigint").fetchone()[0]
+        day, hour = now // 86400 * 86400, now // 3600 * 3600
+        rows = ((86400, day, "site", DAILY_LIMIT), (3600, hour, browser, BROWSER_LIMIT))
+        for period, start, subject, cap in rows:
+            inserted = connection.execute(
+                """INSERT INTO answer_quota.usage AS current (period, started, subject)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (period, started, subject) DO UPDATE SET used = current.used + 1
+                WHERE current.used < %s RETURNING used""",
+                (period, start, subject, cap),
+            )
+            if inserted.fetchone() is None:
+                # Both rows roll back when either limit is exhausted.
+                raise AdmissionError("answer_daily_limit" if period == 86400 else "answer_browser_limit",
+                                     429, start + period - now)
+        connection.execute("DELETE FROM answer_quota.usage WHERE started < %s", (day - 86400,))
