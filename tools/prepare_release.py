@@ -45,7 +45,7 @@ def prepare(output, root=ROOT, *, source_commit=None):
         files[relative] = {"sha256": original_hash, "bytes": destination.stat().st_size}
 
     # Explicit application allowlist. Never copy an entire workspace or its .env.
-    for folder, extensions in (("ipindia_corpus", {".py"}), ("web", {".html", ".css", ".js", ".svg", ".png", ".ttf"})):
+    for folder, extensions in (("ipindia_corpus", {".py"}), ("web", {".html", ".css", ".js", ".svg", ".png", ".jpeg", ".ttf"})):
         for path in sorted((root / folder).rglob("*")):
             if path.suffix in extensions and "__pycache__" not in path.parts:
                 copy(path)

@@ -90,8 +90,18 @@ class AnswerRequest(BaseModel):
 
 
 @app.get("/", include_in_schema=False)
+@app.get("/index.html", include_in_schema=False)
 def home_endpoint():
     path = ROOT / "web/index.html"
+    if not path.is_file():
+        raise HTTPException(status_code=503, detail="interface_unavailable")
+    return FileResponse(path, media_type="text/html", headers={"Cache-Control": "no-store"})
+
+
+@app.get("/research", include_in_schema=False)
+@app.get("/research.html", include_in_schema=False)
+def research_endpoint():
+    path = ROOT / "web/research.html"
     if not path.is_file():
         raise HTTPException(status_code=503, detail="interface_unavailable")
     return FileResponse(path, media_type="text/html", headers={"Cache-Control": "no-store"})

@@ -1,6 +1,42 @@
 'use strict';
 (() => {
   const $ = (id) => document.getElementById(id);
+  let language = 'en';
+  try { if (localStorage.getItem('ayurveda-language') === 'hi') language = 'hi'; } catch (_) { /* Preference storage is optional. */ }
+  const tr = (en, hi) => language === 'hi' ? hi : en;
+  const languageButton = document.querySelector('.language-button');
+  const placeholders = [...document.querySelectorAll('[data-placeholder-hi]')].map(el => [el, el.placeholder]);
+  function setLanguage(next) {
+    language = next;
+    document.documentElement.lang = next;
+    document.querySelectorAll('[data-en][data-hi]').forEach(element => {
+      // The two formatting tags come from static translations. Render them
+      // explicitly so source text and translated copy never enter innerHTML.
+      const parts = element.dataset[next].split(/(<em>[^<]*<\/em>|<br>)/);
+      element.replaceChildren(...parts.map(part => {
+        if (part === '<br>') return document.createElement('br');
+        if (part.startsWith('<em>') && part.endsWith('</em>')) {
+          const emphasis = document.createElement('em');
+          emphasis.textContent = part.slice(4, -5);
+          return emphasis;
+        }
+        return document.createTextNode(part);
+      }));
+    });
+    for (const [element, english] of placeholders) element.placeholder = tr(english, element.dataset.placeholderHi);
+    for (const [attribute, selector] of [['aria-label', 'aria'], ['alt', 'alt']]) {
+      document.querySelectorAll('[data-' + selector + '-en][data-' + selector + '-hi]').forEach(element =>
+        element.setAttribute(attribute, element.getAttribute('data-' + selector + '-' + next)));
+    }
+    if (languageButton) {
+      languageButton.querySelector('.language-label').textContent = tr('हिन्दी', 'English');
+      languageButton.setAttribute('aria-label', tr('Switch language to Hindi', 'Switch language to English'));
+    }
+    try { localStorage.setItem('ayurveda-language', next); } catch (_) { /* Preference storage is optional. */ }
+  }
+  if (languageButton) languageButton.addEventListener('click', () => setLanguage(tr('hi', 'en')));
+  setLanguage(language);
+  if (!$('search-form')) return;
   const sources = {ipindia: 'IP India', indiacode: 'India Code', tkdl: 'TKDL'};
   const officialHosts = new Set(['ipindia.gov.in', 'www.ipindia.gov.in', 'indiacode.gov.in', 'www.indiacode.gov.in', 'indiacode.nic.in', 'www.indiacode.nic.in', 'upload.indiacode.nic.in', 'tkdl.res.in', 'www.tkdl.res.in']);
   const state = {demoEnabled: false, ready: false, pending: false, controller: null, sequence: 0, sourceOpener: null, healthPending: false, healthTimer: null};
@@ -26,7 +62,7 @@
       return url.href;
     } catch (_) { return null; }
   }
-  function linkFor(citation, text, className = 'citation-link') {
+  function linkFor(citation, text, className = 'official-link') {
     const href = citationUrl(citation);
     if (!href) return node('span', className, `${text} · citation unavailable`);
     const a = node('a', className, text);
@@ -48,9 +84,9 @@
     list.append(node('dt', '', label), node('dd', '', value || 'Not recorded'));
   }
   function provenance(hit) {
-    const details = node('details', 'provenance');
+    const details = node('details', 'provenance-box');
     details.append(node('summary', '', 'Archive & citation details'));
-    const dl = node('dl');
+    const dl = node('dl', 'provenance-list');
     addDefinition(dl, 'Document ID', hit.document_id);
     addDefinition(dl, 'Passage ID', hit.chunk_id);
     addDefinition(dl, 'Source SHA-256', hit.raw_sha256);
@@ -60,25 +96,25 @@
     return details;
   }
   function renderHit(hit, index) {
-    const article = node('article', 'evidence-hit');
-    const eyebrow = node('div', 'hit-eyebrow');
-    eyebrow.append(node('span', 'hit-number', String(index + 1).padStart(2, '0')), node('span', 'hit-source', sources[hit.source] || 'Official evidence'));
+    const article = node('article', 'evidence-card');
+    const eyebrow = node('div', 'evidence-eyebrow');
+    eyebrow.append(node('span', 'hit-badge', String(index + 1).padStart(2, '0')), node('span', 'source-pill', sources[hit.source] || 'Official evidence'));
     if (hit.legal_domain) eyebrow.append(node('span', '', hit.legal_domain));
     if (hit.evidence_role === 'institutional_background') eyebrow.append(node('span', 'hit-role', 'Institutional background'));
     if (hit.short_unit) eyebrow.append(node('span', 'hit-role', 'Short provision'));
-    const title = node('h3');
+    const title = node('h3', 'evidence-title');
     const link = linkFor(hit, hit.title || 'Untitled official document');
     const mark = node('span', 'external-mark', '↗');
     mark.setAttribute('aria-hidden', 'true');
     if (link.tagName === 'A') link.append(mark);
     title.append(link);
-    const anchor = node('div', 'hit-anchor');
-    anchor.append(node('span', '', anchorLabel(hit)), node('span', 'legal-status', 'Legal status unknown'));
-    const passage = node('p', 'hit-passage collapsed', hit.text);
+    const anchor = node('div', 'evidence-anchor');
+    anchor.append(node('span', '', anchorLabel(hit)), node('span', 'status-pill', 'Legal status unknown'));
+    const passage = node('p', 'evidence-quote collapsed', hit.text);
     const passageId = `passage-${state.sequence}-${index}`;
     passage.id = passageId;
-    const footer = node('div', 'hit-footer');
-    const expand = node('button', 'text-button hit-toggle', 'Read full passage +');
+    const footer = node('div', 'card-footer');
+    const expand = node('button', 'text-button toggle-quote', 'Read full passage +');
     expand.type = 'button';
     expand.setAttribute('aria-expanded', 'false');
     expand.setAttribute('aria-controls', passageId);
@@ -100,7 +136,7 @@
   }
   function renderSearch(data, elapsed) {
     if (!Array.isArray(data.hits)) throw new Error('invalid_response');
-    $('results-title').textContent = data.hits.length ? 'Evidence, with context' : 'No matching passages';
+    $('results-title').textContent = data.hits.length ? tr('Verified evidence passages', 'सत्यापित साक्ष्य अंश') : tr('No matching passages', 'कोई संबंधित अंश नहीं मिला');
     $('results-meta').textContent = `${data.hits.length} passage${data.hits.length === 1 ? '' : 's'} · ${(elapsed / 1000).toFixed(2)} s`;
     if (!data.hits.length) {
       message('Try a different research phrase.', 'Use an instrument title, section number or broader topic. Reset filters if needed. No result does not establish that a legal rule is absent.');
@@ -115,7 +151,7 @@
   }
   function demoMode() { return state.demoEnabled && $('research-mode').value === 'answer'; }
   function addEvidenceAction(parent, selection) {
-    const button = node('button', 'text-button evidence-action', 'Inspect matching passages');
+    const button = node('button', 'text-button evidence-action', tr('Inspect matching passages', 'मिलते-जुलते अंश देखें'));
     button.type = 'button';
     button.addEventListener('click', () => {
       $('question').value = selection.query;
@@ -132,7 +168,7 @@
   function renderAnswer(data, elapsed, selection) {
     const unavailable = data.status === 'unavailable';
     const titles = {personal_legal_or_medical_advice: 'Research or personal advice?', current_legal_status_unverified: 'Current legal status is not established'};
-    $('results-title').textContent = data.status === 'answered' ? 'Verified research extracts' : unavailable ? 'AI service temporarily unavailable' : titles[data.reason] || 'No supporting extract selected';
+    $('results-title').textContent = data.status === 'answered' ? tr('Verified research extracts', 'सत्यापित शोध अंश') : unavailable ? 'AI service temporarily unavailable' : titles[data.reason] || 'No supporting extract selected';
     $('results-meta').textContent = `IP India demo · ${Math.round(elapsed)} ms · ${data.provider?.model || 'No model call'}`;
     const fragment = document.createDocumentFragment();
     if (data.notice) fragment.append(node('p', 'result-notice', data.notice));
@@ -156,8 +192,8 @@
       fragment.append(block);
     }
     (data.claims || []).forEach((claim) => {
-      const article = node('article', 'evidence-hit');
-      article.append(node('blockquote', 'hit-passage', claim.text));
+      const article = node('article', 'evidence-card');
+      article.append(node('blockquote', 'evidence-quote', claim.text));
       (claim.citations || []).forEach((citation) => {
         article.append(linkFor(citation, `${citation.title || 'Official source'} · ${anchorLabel(citation)}`), provenance(citation));
       });
@@ -168,7 +204,9 @@
   }
   function updateSubmit() {
     $('submit-button').disabled = !state.ready || state.pending;
-    $('submit-label').textContent = state.pending ? (demoMode() ? 'Selecting extracts…' : 'Searching…') : demoMode() ? 'Ask AyurIP' : 'Find evidence';
+    $('consent-label').hidden = !demoMode();
+    if (state.pending) $('submit-label').textContent = tr('Searching…', 'खोज जारी है…');
+    else $('submit-label').textContent = demoMode() ? tr('Ask AyurIP', 'AyurIP से पूछें') : tr('Find evidence', 'साक्ष्य खोजें');
   }
   async function requestJson(url, options = {}, timeout = 15000, allowUnavailable = false) {
     const controller = new AbortController();
@@ -214,6 +252,7 @@
     $('results').replaceChildren(loading);
     announce('Searching archived evidence.');
     if ($('research-results')) {
+      $('research-results').hidden = false;
       $('edit-search').hidden = false;
       $('results-title').focus({preventScroll: true});
       $('research-results').scrollIntoView({block: 'start'});
@@ -269,7 +308,7 @@
   }
   function toggleSources(open, opener) {
     $('source-panel').hidden = !open;
-    for (const id of ['status-toggle', 'source-detail-button']) $(id).setAttribute('aria-expanded', String(open));
+    for (const id of ['status-toggle', 'source-detail-button']) $(id)?.setAttribute('aria-expanded', String(open));
     document.querySelectorAll('[data-open-sources]').forEach((button) => button.setAttribute('aria-expanded', String(open)));
     if (open) {
       state.sourceOpener = opener;
@@ -328,7 +367,7 @@
     state.ready = data?.status === 'ok';
     const preparing = ['not_started', 'initializing'].includes(data?.readiness?.state);
     $('health-label').textContent = state.ready ? 'Evidence search available' : preparing ? 'Preparing evidence search…' : 'Service unavailable';
-    $('health-dot').className = `status-dot ${state.ready ? 'ready' : 'error'}`;
+    $('health-dot').className = `service-dot ${state.ready ? 'ready' : 'offline'}`;
     $('service-message').textContent = state.ready ? 'Search the archive. Expand a passage and inspect its official source.' : preparing ? 'The service is validating the archive before accepting searches. Your question will stay in the field.' : 'Evidence search is temporarily unavailable. Your research question has been kept.';
     $('service-notice').classList.toggle('unavailable', !state.ready);
     $('retry-service').hidden = state.ready;
@@ -351,41 +390,12 @@
   $('search-form').addEventListener('submit', submit);
   $('question').addEventListener('input', () => { $('question').setCustomValidity(''); $('character-count').textContent = `${$('question').value.length} / 500`; });
   $('question').addEventListener('keydown', (event) => { if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) { event.preventDefault(); if (!state.pending) $('search-form').requestSubmit(); } });
-  $('filter-toggle').addEventListener('click', () => { const expanded = $('filter-toggle').getAttribute('aria-expanded') !== 'true'; $('filters').hidden = !expanded; $('filter-toggle').setAttribute('aria-expanded', String(expanded)); });
   $('source-filter').addEventListener('change', filterCount);
   $('domain-filter').addEventListener('change', filterCount);
   $('reset-filters').addEventListener('click', () => { $('source-filter').value = ''; $('domain-filter').value = ''; $('top-k').value = '5'; filterCount(); });
   $('suggestions').querySelectorAll('[data-query]').forEach((button) => button.addEventListener('click', () => { $('question').value = button.dataset.query; $('question').dispatchEvent(new Event('input')); $('search-form').requestSubmit(); }));
-  for (const id of ['status-toggle', 'source-detail-button']) $(id).addEventListener('click', () => toggleSources($('source-panel').hidden, $(id)));
-  document.querySelectorAll('[data-open-sources]').forEach((button) => button.addEventListener('click', () => toggleSources(true, button)));
-  document.querySelectorAll('[data-research-query]').forEach((link) => link.addEventListener('click', (event) => {
-    event.preventDefault();
-    $('question').value = link.dataset.researchQuery;
-    $('question').dispatchEvent(new Event('input'));
-    $('research').scrollIntoView({block: 'start'});
-    $('question').focus({preventScroll: true});
-  }));
-  const menu = $('nav-toggle');
-  function closeMenu(restoreFocus = false) {
-    if (!menu) return;
-    menu.setAttribute('aria-expanded', 'false');
-    $('site-nav').classList.remove('is-open');
-    $('nav-sign').textContent = '＋';
-    if (restoreFocus) menu.focus();
-  }
-  if (menu) {
-    menu.addEventListener('click', () => {
-      const open = menu.getAttribute('aria-expanded') !== 'true';
-      menu.setAttribute('aria-expanded', String(open));
-      $('site-nav').classList.toggle('is-open', open);
-      $('nav-sign').textContent = open ? '−' : '＋';
-    });
-    $('site-nav').querySelectorAll('a').forEach((link) => link.addEventListener('click', () => closeMenu()));
-    document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape' && menu.getAttribute('aria-expanded') === 'true') closeMenu(true);
-    });
-    window.matchMedia('(min-width: 901px)').addEventListener('change', () => closeMenu());
-  }
+  for (const id of ['status-toggle', 'source-detail-button']) $(id)?.addEventListener('click', () => toggleSources($('source-panel').hidden, $(id)));
+  languageButton?.addEventListener('click', updateSubmit);
   $('close-sources').addEventListener('click', () => toggleSources(false));
   $('source-panel').addEventListener('keydown', (event) => { if (event.key === 'Escape') toggleSources(false); });
   $('retry-service').addEventListener('click', () => { checkHealth(); loadSources(); });
@@ -393,21 +403,6 @@
     $('question').scrollIntoView({block: 'center'});
     $('question').focus({preventScroll: true});
   });
-  const navLinks = [...document.querySelectorAll('#site-nav a[href^="#"]')];
-  if ('IntersectionObserver' in window) {
-    const observer = new IntersectionObserver((entries) => {
-      for (const entry of entries) {
-        if (!entry.isIntersecting) continue;
-        const target = entry.target.id === 'research-results' ? '#research' : `#${entry.target.id}`;
-        navLinks.forEach((link) => {
-          if (link.hash === target) link.setAttribute('aria-current', 'location');
-          else link.removeAttribute('aria-current');
-        });
-      }
-    }, {rootMargin: '-100px 0px -55% 0px', threshold: 0});
-    navLinks.forEach((link) => { const section = document.querySelector(link.hash); if (section) observer.observe(section); });
-    if ($('research-results')) observer.observe($('research-results'));
-  }
   $('research-mode').addEventListener('change', () => { $('demo-consent').checked = false; updateSubmit(); });
   $('demo-consent').addEventListener('change', () => $('demo-consent').setCustomValidity(''));
   async function loadCapabilities() {
@@ -422,5 +417,4 @@
     updateSubmit();
   }
   checkHealth();
-  loadSources();
 })();

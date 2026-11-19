@@ -40,7 +40,11 @@ def check(base, *, root=ROOT, allow_local=False, baseline=None, host=None, trace
 
     home = request("GET", "/")
     checks["homepage"] = home.status_code == 200 and "AyurIP" in home.text
-    checks["assets"] = all(request("GET", p).status_code == 200 for p in ("/assets/app.js", "/assets/styles.css"))
+    assets = ("/assets/app.js", "/assets/ayuserach.css",
+              "/assets/images/WhatsApp%20Image%202026-11-17%20at%2010.19.58.jpeg")
+    checks["assets"] = all(request("GET", path).status_code == 200 for path in assets)
+    workspace = request("GET", "/research")
+    checks["research_workspace"] = workspace.status_code == 200 and 'id="search-form"' in workspace.text
     health = request("GET", "/health")
     checks["readiness"] = health.status_code == 200 and health.json().get("generation_id") == "20261014T204940358650Z"
     checks["liveness"] = request("GET", "/live").status_code == 200

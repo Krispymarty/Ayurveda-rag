@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="Start an Ayurveda research question with source context in view.">
+  <title>Research workspace · AyurIP</title>
+  <link rel="icon" href="/assets/favicon.svg">
+  <link rel="stylesheet" href="/assets/ayuserach.css">
+  <script src="/assets/app.js" defer></script>
+</head>
+<body data-page="research">
+  <a class="skip-link" href="#main" data-en="Skip to content" data-hi="मुख्य सामग्री पर जाएँ">Skip to content</a>
+  <header class="site-header"><div class="container nav-inner">
+    <a class="brand" href="/" aria-label="AyuSerach home" data-aria-en="AyuSerach home" data-aria-hi="AyuSerach मुख्य पृष्ठ"><img class="brand-logo" src="/assets/images/ayuserach-logo.png" width="2172" height="724" alt="AyuSerach"></a>
+    <nav class="desktop-nav" aria-label="Main navigation" data-aria-en="Main navigation" data-aria-hi="मुख्य नेविगेशन">
+      <a href="/#how-it-works" data-en="How it works" data-hi="यह कैसे काम करता है">How it works</a>
+      <a href="/#sources" data-en="Our sources" data-hi="हमारे स्रोत">Our sources</a>
+      <a href="/#about" data-en="About" data-hi="परिचय">About</a>
+    </nav>
+    <div class="nav-actions">
+      <div class="service-pill" id="service-pill" role="status" aria-live="polite">
+        <span class="service-dot connecting" id="health-dot" aria-hidden="true"></span>
+        <span id="health-label">Checking archive...</span>
+      </div>
+      <button class="language-button" type="button" aria-label="Switch language to Hindi"><span class="language-label">हिन्दी</span></button>
+      <a class="button button-small nav-cta" href="/"><span data-en="Back to home" data-hi="मुख्य पृष्ठ पर जाएँ">Back to home</span></a>
+    </div>
+  </div></header>
+
+  <main id="main" class="workspace-main"><div class="container workspace-shell"><div class="workspace-content">
+    <div class="workspace-body">
+      <div class="workspace-intro">
+        <span class="brand-mark" aria-hidden="true"><img src="/assets/images/book-open-green.svg" alt="" width="62" height="62"></span>
+        <h1 data-en="Start a new research check" data-hi="नई शोध जाँच शुरू करें">Start a new research check</h1>
+        <p data-en="Search archived IP India passages and open their official citations." data-hi="संग्रहीत आईपी इंडिया अंश खोजें और उनके आधिकारिक स्रोत खोलें।">Search archived IP India passages and open their official citations.</p>
+      </div>
+
+      <form class="research-form" id="search-form">
+        <div class="input-panel active" data-panel="question">
+          <label class="field-label" for="question" data-en="Your research question or claim" data-hi="आपका शोध प्रश्न या दावा">Your research question or claim</label>
+          <textarea class="research-input" id="question" name="question" maxlength="500" placeholder="e.g. Which source discusses this Ayurvedic formulation? or Patents Act section 3" data-placeholder-hi="उदाहरण: किस स्रोत में इस आयुर्वेदिक योग का उल्लेख है? या पेटेंट अधिनियम धारा 3"></textarea>
+          <div class="input-meta-bar">
+            <span class="char-count" id="character-count">0 / 500</span>
+          </div>
+        </div>
+
+        <div class="filter-controls">
+          <details class="filter-accordion">
+            <summary><span id="filter-count"></span> <span data-en="Search filters &amp; options" data-hi="खोज फ़िल्टर और विकल्प">Search filters &amp; options</span></summary>
+            <div class="filter-grid">
+              <div class="filter-field">
+                <label for="source-filter" data-en="Target source" data-hi="लक्षित स्रोत">Target source</label>
+                <select id="source-filter" name="source">
+                  <option value="" data-en="Searchable archive" data-hi="खोज योग्य संग्रह">Searchable archive</option>
+                  <option value="ipindia">IP India</option>
+                </select>
+              </div>
+              <div class="filter-field">
+                <label for="domain-filter" data-en="Legal domain" data-hi="कानूनी क्षेत्र">Legal domain</label>
+                <select id="domain-filter" name="domain">
+                  <option value="" data-en="All domains" data-hi="सभी क्षेत्र">All domains</option>
+                  <option value="Patent">Patent</option>
+                  <option value="Trademark">Trademark</option>
+                  <option value="Design">Design</option>
+                  <option value="GI">Geographical Indication (GI)</option>
+                  <option value="General IP">General IP</option>
+                </select>
+              </div>
+              <div class="filter-field">
+                <label for="top-k" data-en="Passages to retrieve" data-hi="प्राप्त करने योग्य अंश">Passages to retrieve</label>
+                <select id="top-k" name="top_k">
+                  <option value="5" selected>5 passages</option>
+                  <option value="10">10 passages</option>
+                </select>
+              </div>
+              <button type="button" id="reset-filters" class="text-button" data-en="Reset filters" data-hi="फ़िल्टर रीसेट करें">Reset filters</button>
+            </div>
+          </details>
+        </div>
+
+        <fieldset id="demo-controls" hidden>
+          <legend data-en="AI-selected extracts · IP India only" data-hi="एआई द्वारा चुने गए अंश · केवल आईपी इंडिया">AI-selected extracts · IP India only</legend>
+          <label for="research-mode" data-en="Response mode" data-hi="उत्तर का प्रकार">Response mode</label>
+          <select id="research-mode">
+            <option value="search" data-en="Evidence search" data-hi="साक्ष्य खोज">Evidence search</option>
+            <option value="answer" data-en="AI-selected verified extracts" data-hi="एआई द्वारा चुने गए सत्यापित अंश">AI-selected verified extracts</option>
+          </select>
+          <label class="checkbox-label" id="consent-label" hidden>
+            <input type="checkbox" id="demo-consent">
+            <span data-en="My question is non-confidential. I agree to send it and archived passages to Groq, with Google Gemini as fallback." data-hi="मेरा प्रश्न गोपनीय नहीं है। मैं प्रश्न और संग्रहीत अंश Groq को, और आवश्यकता होने पर Google Gemini को भेजने की सहमति देता हूँ।">My question is non-confidential. I agree to send it and archived passages to Groq, with Google Gemini as fallback.</span>
+          </label>
+        </fieldset>
+        <div class="query-suggestions" id="suggestions">
+          <span class="suggestion-label" data-en="Try searching:" data-hi="खोज कर देखें:">Try searching:</span>
+          <button type="button" class="suggestion-chip" data-query="Patents Act section 3 traditional knowledge"><span data-en="Patents Act Section 3" data-hi="पेटेंट अधिनियम धारा 3">Patents Act Section 3</span></button>
+          <button type="button" class="suggestion-chip" data-query="Patents Act section 3 medicinal treatment"><span data-en="Medicinal exclusions" data-hi="चिकित्सीय अपवाद">Medicinal exclusions</span></button>
+          <button type="button" class="suggestion-chip" data-query="Trade Marks Act registration"><span data-en="Trade Marks registration" data-hi="ट्रेडमार्क पंजीकरण">Trade Marks registration</span></button>
+        </div>
+
+        <div class="form-foot">
+          <p data-en="Use general research questions. Keep unpublished ideas and personal information private." data-hi="सामान्य शोध प्रश्न पूछें। अप्रकाशित विचार और व्यक्तिगत जानकारी साझा न करें।">Use general research questions. Keep unpublished ideas and personal information private.</p>
+          <button class="button" id="submit-button" type="submit" disabled><span id="submit-label" data-en="Start research" data-hi="शोध शुरू करें">Start research</span></button>
+        </div>
+
+        <div id="service-notice" class="service-notice">
+          <span id="service-message" role="status">Checking archive readiness…</span>
+          <button type="button" class="text-button" id="retry-service" hidden>Check again</button>
+        </div>
+        <div class="sr-only" id="announcement" role="status" aria-live="polite" aria-atomic="true"></div>
+      </form>
+
+      <section class="evidence-results-section" id="research-results" hidden aria-labelledby="results-title">
+        <div class="results-header">
+          <div>
+            <h2 id="results-title" tabindex="-1">Verified Evidence Passages</h2>
+            <p id="results-meta" class="results-meta"></p>
+          </div>
+          <button type="button" id="edit-search" hidden class="text-button" data-en="Edit question" data-hi="प्रश्न संपादित करें">Edit question</button>
+        </div>
+        <div id="results" class="evidence-container" role="feed" aria-busy="false"></div>
+      </section>
+    </div>
+
+    <div class="source-coverage">
+      <p id="coverage-note">Searchable evidence comes from the archived IP India collection.</p>
+      <button type="button" class="text-button" id="source-detail-button" aria-controls="source-panel" aria-expanded="false" data-en="View source status" data-hi="स्रोत की स्थिति देखें">View source status</button>
+    </div>
+    <section class="source-panel" id="source-panel" aria-labelledby="source-panel-title" hidden>
+      <h2 id="source-panel-title" tabindex="-1" data-en="Source status" data-hi="स्रोत की स्थिति">Source status</h2>
+      <button type="button" class="text-button" id="close-sources" data-en="Close" data-hi="बंद करें">Close</button>
+      <p id="source-summary"></p><div id="source-list"></div><div id="source-details"></div><p id="generation-line"></p>
+    </section>
+    <div class="mobile-source-links">
+      <a href="https://ipindia.gov.in" target="_blank" rel="noopener noreferrer" data-en="Open IP India ↗" data-hi="IP India खोलें ↗">Open IP India ↗</a>
+      <a href="https://tkdl.res.in/tkdl/langdefault/common/Home.asp?GL=Eng" target="_blank" rel="noopener noreferrer" data-en="Open TKDL ↗" data-hi="TKDL खोलें ↗">Open TKDL ↗</a>
+      <a href="https://www.indiacode.nic.in/indiacode/home.jsp" target="_blank" rel="noopener noreferrer" data-en="Open India Code ↗" data-hi="India Code खोलें ↗">Open India Code ↗</a>
+    </div>
+
+    <div class="workspace-bottom" data-en="AyuSerach · AyurIP archive · Legal status remains unknown" data-hi="AyuSerach · AyurIP संग्रह · कानूनी स्थिति अज्ञात है">AyuSerach · AyurIP archive · Legal status remains unknown</div>
+  </div></div></main>
+</body>
+</html>
