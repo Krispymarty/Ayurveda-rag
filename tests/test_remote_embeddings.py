@@ -98,6 +98,8 @@ class HostedRoutingTests(unittest.TestCase):
             self.assertNotIn("passport", proxy["src"])
             self.assertTrue((out / "assets" / "app.js").is_file())
             self.assertFalse((out / ".env").exists())
+            research = (out / "research.html").read_text(encoding="utf-8")
+            self.assertIn('id="hosted-embedding-notice" class="service-notice" data-en', research)
 
 
 class SpaceRouterTests(unittest.TestCase):

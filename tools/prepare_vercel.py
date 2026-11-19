@@ -22,8 +22,12 @@ def prepare(output, render_origin, root=ROOT):
         raise ValueError("new_separate_staging_directory_required")
     output.mkdir(parents=True)
     web = root / "web"
-    for name in ("index.html", "research.html"):
-        shutil.copyfile(web / name, output / name)
+    shutil.copyfile(web / "index.html", output / "index.html")
+    research = (web / "research.html").read_text(encoding="utf-8")
+    marker = 'id="hosted-embedding-notice" class="service-notice" hidden'
+    if research.count(marker) != 1:
+        raise ValueError("hosted_query_disclosure_missing")
+    (output / "research.html").write_text(research.replace(marker, marker.removesuffix(" hidden")), encoding="utf-8")
     for asset in sorted(web.rglob("*")):
         if asset.is_file() and asset.suffix in ASSETS:
             destination = output / "assets" / asset.relative_to(web)
