@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import math
 import os
+import hmac
 import re
 import threading
 import time
@@ -78,7 +79,7 @@ class SecurityMiddleware:
                             b"x-frame-options": b"DENY",
                             b"referrer-policy": b"no-referrer",
                             b"permissions-policy": b"camera=(), microphone=(), geolocation=()"}
-        if path.rstrip("/") in {"/answer", "/capabilities"}:
+        if path.rstrip("/") in {"/answer", "/capabilities", "/search"}:
             security_headers[b"cache-control"] = b"no-store"
         if self.deployment.public_research:
             security_headers[b"strict-transport-security"] = b"max-age=31536000"
@@ -106,6 +107,12 @@ class SecurityMiddleware:
         except (UnicodeDecodeError, ValueError):
             await reject(400, "invalid_host")
             return
+
+        if self.deployment.proxy_secret and (scope["method"] != "GET" or path not in {"/health", "/live"}):
+            values = [value for key, value in scope.get("headers", []) if key.lower() == b"x-origin-secret"]
+            if len(values) != 1 or not hmac.compare_digest(values[0], self.deployment.proxy_secret.encode("ascii")):
+                await reject(403, "proxy_required")
+                return
 
         origins = [value for key, value in scope.get("headers", []) if key.lower() == b"origin"]
         if self.deployment.public_research and origins:

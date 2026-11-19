@@ -60,7 +60,12 @@ def runtime_port():
 def main():
     port = runtime_port()
     manifest = verify_release()
-    if load_deployment_config().hosted_answers and (
+    config = load_deployment_config()
+    if manifest.get("embedding_backend", "local") != config.embedding_backend:
+        raise ValueError("release_embedding_backend_mismatch")
+    if config.embedding_backend == "remote_e5" and not config.proxy_secret:
+        raise ValueError("release_origin_proxy_required")
+    if config.hosted_answers and (
             manifest.get("hosted_extracts_supported") is not True
             or not re.fullmatch(r"[0-9a-f]{40}", manifest.get("source_commit", ""))):
         raise ValueError("hosted_extracts_release_binding_failed")

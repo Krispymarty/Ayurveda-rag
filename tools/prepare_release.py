@@ -20,12 +20,14 @@ def sha(path):
     return digest.hexdigest()
 
 
-def prepare(output, root=ROOT, *, source_commit=None):
+def prepare(output, root=ROOT, *, source_commit=None, embedding_backend="local"):
     root, output = Path(root).resolve(), Path(output).resolve()
     if output.exists() or output == root or root.is_relative_to(output):
         raise ValueError("new_separate_staging_directory_required")
     if source_commit is not None and not re.fullmatch(r"[0-9a-f]{40}", source_commit):
         raise ValueError("invalid_source_commit")
+    if embedding_backend not in {"local", "remote_e5"}:
+        raise ValueError("unknown_embedding_backend")
     output.mkdir(parents=True)
     resolver = ArchiveResolver(root)
     files, counts = {}, {}
@@ -73,9 +75,9 @@ def prepare(output, root=ROOT, *, source_commit=None):
     model_lock = json.loads((root / "deploy/embedding-files.lock.json").read_bytes())
     if model_lock["revision"] != revision or model_lock["model_id"] != "intfloat/multilingual-e5-small":
         raise ValueError("model_file_lock_binding_failed")
-    if not snapshot.is_dir():
+    if embedding_backend == "local" and not snapshot.is_dir():
         raise ValueError("pinned_embedding_snapshot_missing")
-    for path in sorted(snapshot.rglob("*")):
+    for path in (sorted(snapshot.rglob("*")) if embedding_backend == "local" else ()):
         if path.is_file():
             # Dereference Linux HF links into regular files in the new snapshot.
             resolved = path.resolve(strict=True)
@@ -85,13 +87,14 @@ def prepare(output, root=ROOT, *, source_commit=None):
             if sha(resolved) != model_lock["files"].get(path.relative_to(snapshot).as_posix()):
                 raise ValueError("model_file_lock_hash_mismatch")
             copy(resolved, path.relative_to(root).as_posix())
-    if not (output / snapshot.relative_to(root) / "model.safetensors").is_file():
+    if embedding_backend == "local" and not (output / snapshot.relative_to(root) / "model.safetensors").is_file():
         raise ValueError("pinned_embedding_weights_missing")
     for gid in (ACTIVE, ROLLBACK):
         generation(output, generation_id=gid)
     manifest = {"version": "ayurip-readonly-release-v1", "active_generation": ACTIVE,
                 "ranking_version": "v2", "rollback_generation": ROLLBACK, "rollback_ranker": "v1",
-                "model_revision": revision, "generations": counts, "original_files": len(originals),
+                "model_revision": revision, "embedding_backend": embedding_backend,
+                "generations": counts, "original_files": len(originals),
                 "files": files, "public_ai_enabled": False, "synchronization_enabled": False,
                 "source_certification": "archived_ipindia_only_status_unknown"}
     if source_commit:
@@ -107,5 +110,7 @@ if __name__ == "__main__":
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--root", type=Path, default=ROOT)
     parser.add_argument("--source-commit", help="Exact commit exported to the staged source root")
+    parser.add_argument("--embedding-backend", choices=["local", "remote_e5"], default="local")
     args = parser.parse_args()
-    print(json.dumps(prepare(args.output, args.root, source_commit=args.source_commit)))
+    print(json.dumps(prepare(args.output, args.root, source_commit=args.source_commit,
+                             embedding_backend=args.embedding_backend)))

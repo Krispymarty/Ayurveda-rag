@@ -409,6 +409,7 @@
     try {
       const capabilities = await requestJson('/capabilities');
       state.demoEnabled = capabilities.demo === true && capabilities.answer_generation_enabled === true;
+      $('hosted-embedding-notice').hidden = capabilities.hosted_query_embeddings !== true;
       $('demo-controls').hidden = !state.demoEnabled;
     } catch (_) {
       state.demoEnabled = false;

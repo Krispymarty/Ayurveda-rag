@@ -32,6 +32,7 @@ from .demo_queries import retrieval_query
 from .inference import PROVIDER_FAILURES
 from .read_pool import connection as read_connection, open_pool
 from .request_metrics import RequestMetricsMiddleware, stage, outcome
+from .remote_embeddings import EmbeddingUnavailable, RemoteEmbeddings
 
 DEPLOYMENT = load_deployment_config()
 READ_POOL = None
@@ -205,6 +206,7 @@ def _answer_capabilities():
 @app.get("/capabilities")
 def capabilities_endpoint(http_request: Request = None):
     capabilities = _answer_capabilities()
+    capabilities["hosted_query_embeddings"] = getattr(DEPLOYMENT, "embedding_backend", "local") == "remote_e5"
     if not capabilities.get("hosted_answers_available") or http_request is None:
         return capabilities
     key, _ = hosted_answers.settings()
@@ -337,6 +339,10 @@ def answer_endpoint(request: AnswerRequest, http_request: Request = None):
 
 def _load_model(record):
     started = time.monotonic()
+    if DEPLOYMENT.embedding_backend == "remote_e5":
+        client = RemoteEmbeddings(model_revision())
+        record("embedding_configuration", time.monotonic() - started)
+        return client
     import torch
     # Small batches regress badly with the container's large default thread pool.
     # This is local CPU inference; keep threads bounded and record it in evals.
@@ -409,6 +415,8 @@ def _ensure_ready():
     if _binding()[0] != snapshot["binding"]:
         readiness.invalidate()
         raise ValueError("active_binding_changed")
+    if isinstance(snapshot.get("model"), RemoteEmbeddings):
+        snapshot["model"].assert_ready()
     return snapshot
 
 
@@ -444,7 +452,9 @@ def search(query: str, top_k: int = 5, source: str | None = None,
            domain: str | None = None) -> dict:
     revision = model_revision()
     with stage("embedding"):
-        vector = _model().encode(["query: " + query], normalize_embeddings=True)[0]
+        model = _model()
+        vector = (model.query(query) if isinstance(model, RemoteEmbeddings)
+                  else model.encode(["query: " + query], normalize_embeddings=True)[0])
     embedding = "[" + ",".join(str(float(value)) for value in vector) + "]"
     provision = re.search(r"\b(section|rule)\s+(\d+[a-z]?)\b", query, re.I)
     section = provision.group(2).lower() if provision and provision.group(1).lower() == "section" else None
@@ -500,6 +510,9 @@ def search_endpoint(q: str = Query(min_length=2, max_length=500),
             result = search(retrieval_query(q), top_k, "ipindia", domain)
             return {**result, "query": q}
         return search(q, top_k, source, domain)
+    except EmbeddingUnavailable as exc:
+        outcome("search_dependency_error")
+        raise HTTPException(status_code=503, detail=str(exc)) from None
     except Exception as exc:
         outcome("search_dependency_error")
         reason = readiness.status().get("reason") or "search_unavailable"
@@ -580,6 +593,9 @@ def health_endpoint():
     try:
         snapshot = _ensure_ready()
         return {"status": "ok", "generation_id": snapshot["binding"][0], "readiness": readiness.status()}
+    except EmbeddingUnavailable as exc:
+        status = {**readiness.status(), "state": "dependency_unavailable", "reason": str(exc)}
+        return JSONResponse(status_code=503, content={"status": "unavailable", "detail": str(exc), "readiness": status})
     except (ValueError, OSError, DatabaseError):
         if readiness.status()["state"] == "ready":
             logger.exception("Index readiness unavailable")

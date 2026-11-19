@@ -1,5 +1,5 @@
 """Operator-only public research configuration; never read from source documents."""
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import os
 import re
 from urllib.parse import urlsplit
@@ -44,6 +44,8 @@ class DeploymentConfig:
     allowed_hosts: tuple[str, ...] = ()
     hosted_answers: bool = False
     answer_candidates: int = 5
+    embedding_backend: str = "local"
+    proxy_secret: str = field(default="", repr=False)
 
     @property
     def public_research(self):
@@ -78,7 +80,13 @@ def load_deployment_config(environ=None):
     depth = env.get("AYURIP_ANSWER_CANDIDATES", "5")
     if depth not in {"5", "10"} or (mode == "local_internal" and depth != "5"):
         raise ValueError("invalid_hosted_answer_depth")
+    embedding = env.get("AYURIP_EMBEDDINGS", "local")
+    proxy = env.get("AYURIP_ORIGIN_PROXY_SECRET", "")
+    if embedding not in {"local", "remote_e5"} or (proxy and not re.fullmatch(r"[0-9a-f]{64}", proxy)):
+        raise ValueError("invalid_public_dependency_setting")
     if mode == "local_internal":
+        if embedding != "local" or proxy:
+            raise ValueError("public_configuration_requires_public_mode")
         if answers == "1" or env.get("AYURIP_PUBLIC_ORIGIN") or env.get("AYURIP_ALLOWED_HOSTS"):
             raise ValueError("public_configuration_requires_public_mode")
         return DeploymentConfig(mode)
@@ -93,4 +101,4 @@ def load_deployment_config(environ=None):
         if len(values) > 16 or any(not value.strip() for value in values):
             raise ValueError("invalid_deployment_host_list")
         allowed.extend(_authority(value.strip()) for value in values)
-    return DeploymentConfig(mode, origin, tuple(dict.fromkeys(allowed)), answers == "1", int(depth))
+    return DeploymentConfig(mode, origin, tuple(dict.fromkeys(allowed)), answers == "1", int(depth), embedding, proxy)
